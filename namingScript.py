@@ -11,6 +11,7 @@ import xml
 from xml.etree import ElementTree as ET
 import glob
 import os
+from utils import getXMPData
 
 def numberName(number,totalDigits):
     additionalCeros = totalDigits-len(str(number))
@@ -23,28 +24,16 @@ def numberName(number,totalDigits):
     return name
 
 def getBandName(filePath):
-    fin = open( filePath, "rb")
-    img = fin.read()
-    imgAsString=str(img)
-    xmp_start = imgAsString.find('<x:xmpmeta')
-    xmp_end = imgAsString.find('</x:xmpmeta')
-    if xmp_start != xmp_end:
-        xmpString = imgAsString[xmp_start:xmp_end+12]
-    
-    xmpAsXML = BeautifulSoup(xmpString, "xml")
-    #print(type(xmpAsXML.prettify()))
-    #print(xmpAsXML.prettify())
-    root = ET.fromstring(xmpAsXML.prettify())
-    #print(xmpAsXML.prettify())
-    bandName = root.findall('.//BandName')[0].text.strip()
-    return bandName
+    meta_data = getXMPData(filePath)
+    return meta_data['BandName']
 
 
 
-dir_of_images_path = 'D:/Manfred/InvestigacionPinas/Beca-CENAT/workspace/multispectral-hiperspectral/Gira 10 13 Mar21/Lote 71/132MEDIA'
+dir_of_images_path = 'gira_30Jun_al_2Jul_2021_10m/L301 B24/103FPLAN'
 myImages = glob.glob(dir_of_images_path+'/*.JPG')
-imagesNamesRange = range(68,100000000)  ####### Specify the starting number 
-imagecounter = 0;
+imagesNamesRange = range(259,100000000)  ####### Specify the starting number
+
+imagecounter = 0
 for rgb_image in myImages:
     imageName = rgb_image[len(dir_of_images_path)+1:len(rgb_image)-4]
     imageNumber = int(imageName[4:8])
