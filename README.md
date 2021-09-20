@@ -4,7 +4,7 @@ This is a customized version of [EfficientDet](https://arxiv.org/abs/1911.09070)
 Also it encompases a strong pipeline to pre-process the multispectral images taken from a Unmanned Aerial Vehicle (UAV) model [DJI P4 Multispectral](https://www.dji.com/p4-multispectral). This pre-processing pipline follows the image processing guide: https://dl.djicdn.com/downloads/p4-multispectral/20200717/P4_Multispectral_Image_Processing_Guide_EN.pdf.
 
 Requirements:
-
-    1. The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.
-
-    2. The dataset should be in the format of this repo.
+<ol>
+<li>The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.</li>
+<li>The dataset should be in the format of this repo.</li>
+</ol> 
