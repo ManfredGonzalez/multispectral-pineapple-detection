@@ -8,7 +8,6 @@ Requirements:
 1. The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.
 2. The dataset should be in the format of this repo.
 
-
 ## Install requirements (Python version 3.8).
     pip install -U scikit-learn
     pip install pycocotools numpy opencv-python tqdm tensorboard tensorboardX pyyaml webcolors
@@ -17,7 +16,7 @@ Requirements:
     pip install rasterio
 
 ## Data pre-processing
-Normally, [DJI P4 Multispectral](https://www.dji.com/p4-multispectral) stores the pictures in the following way:
+Normally, [DJI P4 Multispectral](https://www.dji.com/p4-multispectral) stores the pictures in the following way  
     DJI_0010.JPG
     DJI_0011.TIF
     DJI_0012.TIF
