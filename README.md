@@ -5,8 +5,8 @@ Also it encompases a strong pipeline to pre-process the multispectral images tak
 
 Requirements:
 
-1.The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.
-2.The dataset should be in the format of this repo.
+1. The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.
+2. The dataset should be in the format of this repo.
 
 
 ## Install requirements
