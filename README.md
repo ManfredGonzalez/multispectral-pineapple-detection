@@ -17,3 +17,12 @@ Requirements:
     pip install rasterio
 
 ## Data pre-processing
+Normally, [DJI P4 Multispectral](https://www.dji.com/p4-multispectral) stores the pictures in the following way:
+    DJI_0010.JPG
+    DJI_0011.TIF
+    DJI_0012.TIF
+    DJI_0013.TIF
+    DJI_0014.TIF
+    DJI_0015.TIF
+    DJI_0016.JPG
+    ...
