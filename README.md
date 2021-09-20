@@ -8,3 +8,13 @@ Requirements:
 <li>The total number of the image of the dataset should not be larger than 10K, capacity should be under 5GB, and it should be free to download, i.e. baiduyun.</li>
 <li>The dataset should be in the format of this repo.</li>
 </ol> 
+
+## Install requirements
+  Python version 3.8
+  pip install -U scikit-learn
+  pip install pycocotools numpy opencv-python tqdm tensorboard tensorboardX pyyaml webcolors
+  pip install torch==1.4.0
+  pip install torchvision==0.5.0
+  pip install rasterio
+
+## Data pre-processing
