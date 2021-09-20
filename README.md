@@ -9,8 +9,7 @@ Requirements:
 2. The dataset should be in the format of this repo.
 
 
-## Install requirements
-(Python version 3.8).
+## Install requirements (Python version 3.8).
     pip install -U scikit-learn
     pip install pycocotools numpy opencv-python tqdm tensorboard tensorboardX pyyaml webcolors
     pip install torch==1.4.0
