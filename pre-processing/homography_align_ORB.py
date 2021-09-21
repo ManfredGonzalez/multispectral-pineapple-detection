@@ -7,7 +7,10 @@ from math import sqrt
 import glob
 import argparse
 import shutil
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import getXMPData,boolean_string
+from tqdm import tqdm
 
 MAX_FEATURES = 20000
 GOOD_MATCH_PERCENT = 0.25
@@ -49,7 +52,7 @@ def align_dif_camera_locations(img,x,y):
     res = cv2.warpAffine(img, transl_matrix, (cols, rows))
     return res
 
-def align_dif_exposure_times(im1, im2,draw_matches=False, use_cuda=False):
+def align_dif_exposure_times(im1, im2,draw_matches=False):
     '''
     Alignment of the difference caused by different exposure times of the cameras. 
     A feature point detection is used to compute an alignment matrix (Homography) using several pairs of matched
@@ -66,15 +69,12 @@ def align_dif_exposure_times(im1, im2,draw_matches=False, use_cuda=False):
     '''
     im1Gray = im1
     im2Gray = im2
+    orb = cv2.ORB_create(MAX_FEATURES)
     # Detect ORB features and compute descriptors.
-    if not use_cuda:
-        orb = cv2.ORB_create(MAX_FEATURES)
-        keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
-        keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
-    else:
-        orb = cv2.cuda_ORB_create(MAX_FEATURES)
-        keypoints1, descriptors1 = orb.detectAndComputeAsync(im1Gray, None)
-        keypoints2, descriptors2 = orb.detectAndComputeAsync(im2Gray, None)
+    
+    keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
+    keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
+    
 
     # Match features.
     matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
@@ -155,13 +155,22 @@ def get_args():
     parser = argparse.ArgumentParser('EfficientDet Pytorch - Evaluate the model')
     parser.add_argument('-dp', '--dir_path', type=str, default="")
     parser.add_argument('-rd', '--results_dir_path', type=str, default="")
+    parser.add_argument('--start_numbering', type=int, default=0)
     parser.add_argument('--use_cuda', type=boolean_string, default=False) 
     parser.add_argument('-fe', '--files_extension', type=str, default="JPG")
 
     args = parser.parse_args()
     return args
-
-def preprocess_DJI_images(root_dir,ref_file_ext,results_path,use_cuda):
+def numberName(number,totalDigits):
+    additionalCeros = totalDigits-len(str(number))
+    if additionalCeros < 0:
+        return "number over the specified range"
+    name = ""
+    for digit in range(additionalCeros):
+        name = "0" + name
+    name = name + str(number)
+    return name
+def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering):
     '''
         This apply all the processing steps described at the Manual of the 
         drone DJI Phantom 4 Multispectral for image processing. Link of the manual:
@@ -178,31 +187,47 @@ def preprocess_DJI_images(root_dir,ref_file_ext,results_path,use_cuda):
 
     '''
     band_file_ext = 'TIF'
-    myImages = glob.glob(f'{root_dir}/*.{ref_file_ext}')
 
-    for ref_file_path in myImages:
-        image_seed_name = ref_file_path[len(root_dir)+1:len(ref_file_path)-4]
-        print("Reading reference image : ", ref_file_path)
+    myImages = glob.glob(f'{root_dir}/*.{ref_file_ext}')
+    myBands = glob.glob(f'{root_dir}/*.{band_file_ext}')
+    images_dictionary = {}
+    for rgb_image in myImages:
+        meta_data = getXMPData(rgb_image)
+        images_dictionary.update (
+            {
+                meta_data['CaptureUUID'] : [rgb_image]
+            }
+        )
+    for tif_image in myBands:
+        meta_data = getXMPData(tif_image)
+        images_dictionary[meta_data['CaptureUUID']].append(tif_image)
+
+    imagecounter = 0
+    imagesNamesRange = range(start_numbering,100000000)  ####### Specify the starting number
+    bands = ['Red','Green','Blue','RedEdge','NIR']
+    for key in tqdm(images_dictionary, desc="Image pre-processing"):
+        ref_file_path = images_dictionary[key][0]
+        imageNewName = numberName(imagesNamesRange[imagecounter],8)
+        imagecounter = imagecounter + 1
         imReference = cv2.imread(ref_file_path, cv2.IMREAD_COLOR)
         # Shift the channels to RGB
         imReference = cv2.cvtColor(imReference, cv2.COLOR_BGR2RGB)
         imReference = cv2.cvtColor(imReference, cv2.COLOR_RGB2GRAY)
+        shutil.copyfile(ref_file_path, f'{results_path}{imageNewName}.{ref_file_ext}')
 
-        shutil.copyfile(ref_file_path, f'{results_path}{image_seed_name}.{ref_file_ext}')
-    
-        bands = ['Red','Green','Blue','RE','NIR']
-        ms_ref = rasterio.open(f"{root_dir}/{image_seed_name}_{bands[0]}.{band_file_ext}")
+        bands = ['Red','Green','Blue','RedEdge','NIR']
+        ms_ref = rasterio.open(images_dictionary[key][1])
         rgb_array = []
-        ms_image_all = rasterio.open(f'{results_path}{image_seed_name}.{band_file_ext}','w',driver='Gtiff',
+        ms_image_all = rasterio.open(f'{results_path}{imageNewName}.{band_file_ext}','w',driver='Gtiff',
                             width=ms_ref.width, 
                             height = ms_ref.height, 
                             count=5, crs=ms_ref.crs, 
                             transform=ms_ref.transform, 
                             dtype='float64')
 
-        count = 1
-        for band_name in bands:
-            file_path = f"{root_dir}/{image_seed_name}_{band_name}.{band_file_ext}"
+        tif_bands = images_dictionary[key][1:]
+        
+        for file_path in tif_bands:
             ms_band = rasterio.open(file_path)
             meta_data = getXMPData(file_path)
             #band = ms_band.read(1)
@@ -223,19 +248,19 @@ def preprocess_DJI_images(root_dir,ref_file_ext,results_path,use_cuda):
             
             band[band == 0] = 1
 
-            #band[band == 0] = 1
-            #band = normalize(ms_band.read(1),0,65535).astype('uint16')
-            ms_image_all.write(band,count)
-            count = count + 1
+            
+            ms_image_all.write(band,bands.index(meta_data['BandName'])+1)
+            
         
         ms_image_all.close()
     print('Done!!')
+
 
     
 if __name__ == '__main__':
 
     opt = get_args()
     
-    preprocess_DJI_images(opt.dir_path,opt.files_extension,opt.results_dir_path,opt.use_cuda)
+    preprocess_DJI_images(opt.dir_path,opt.files_extension,opt.results_dir_path,opt.start_numbering)
 
 
