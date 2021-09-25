@@ -33,3 +33,14 @@ The following line represents how the python file must be called to align all th
         # The param named start_numbering means the new unique number name that the image will have.  
         # This is important because DJI images names can be duplicated between directories from a same flight.
         python pre-processing/homography_align_ORB.py --dir_path /path/to/the/directory/where/your/images/are/located --results_dir_path /path/to/the/directory/where/the/aligned/images/will/be/located/ --start_numbering 1
+
+After runnig the pre-processing step the multiespectral images will look like:
+
+        00000001.JPG
+        00000001.TIF
+        00000002.JPG
+        00000002.TIF
+        ...
+
+The .TIF file contains the 5 multispectral bands aligned in the following way: 1:Red, 2:Blue, 3:Green, 4:RedEdge, 5:NIR.  
+The .JPG file corresponds to the original visible light image.
