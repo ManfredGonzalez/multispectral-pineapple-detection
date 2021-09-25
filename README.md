@@ -30,4 +30,6 @@ Normally, [DJI P4 Multispectral](https://www.dji.com/p4-multispectral) stores th
 The .JPG file represents de visible light image, and the other 5 .TIF files represent the multispectral bands of that specific capture. This pattern must be present in all datasets to pre-process since the script will look for the 6 images (visible-light, Red, Blue, Green, RedEdge and NIR).   
 The following line represents how the python file must be called to align all the images and apply all the photosensitivity between the multispectral images and sunlight sensor.
 
+        # The param named start_numbering means the new unique number name that the image will have.  
+        # This is important because DJI images names can be duplicated between directories from a same flight.
         python pre-processing/homography_align_ORB.py --dir_path /path/to/the/directory/where/your/images/are/located --results_dir_path /path/to/the/directory/where/the/aligned/images/will/be/located/ --start_numbering 1
