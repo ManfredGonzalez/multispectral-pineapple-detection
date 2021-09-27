@@ -11,6 +11,9 @@ import yaml
 import glob
 from utils.utils import boolean_string
 import argparse
+import sys
+
+#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
 def copy_data():
@@ -42,10 +45,12 @@ def copy_data():
 
     
 def split_data(file_input_dir, output_folder, 
-               classes_file, 
-               name_1, name_2, name_3, 
-               set_1, set_2, set_3, 
-               shuffle, sub_sample, seed, img_extension, annotations_file=None):
+                classes_file, 
+                name_1, name_2, name_3, 
+                set_1, set_2, set_3, 
+                shuffle, sub_sample, seed, img_extension,
+                multispectral=True, 
+                annotations_file=None):
     """
     Method to split into train/test/val sets.
 
@@ -138,7 +143,8 @@ def split_data(file_input_dir, output_folder,
     for img_index, img_name in enumerate(X_train):    
         folder = output_folder + name_1 + "/"
         copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
-        
+        if multispectral:
+            copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
         #include annotations in the json
         final_json_train, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                   anns_names_list, anns_bboxes_list, json_data_train)
@@ -163,7 +169,8 @@ def split_data(file_input_dir, output_folder,
         for img_index, img_name in enumerate(X_val):        
             folder = output_folder + f"{name_2}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
-            
+            if multispectral:
+                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
             #include annotations in the json
             final_json_val, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_val)
@@ -184,7 +191,8 @@ def split_data(file_input_dir, output_folder,
             #move image
             folder = output_folder + f"{name_3}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
-            
+            if multispectral:
+                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
             #include annotations in the json
             final_json_test, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_test)
@@ -204,7 +212,8 @@ def split_data(file_input_dir, output_folder,
         for img_index, img_name in enumerate(X_test_big):        
             folder = output_folder + f"{name_2}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
-            
+            if multispectral:
+                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
             #include annotations in the json
             final_json_test, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_test)
@@ -403,6 +412,7 @@ def get_args():
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--sub_sample', type=int, default=0)
     parser.add_argument('--img_extension', type=str, default='jpg')
+    parser.add_argument('--multispectral', type=boolean_string, default=True) 
 
     args = parser.parse_args()
     return args
@@ -435,7 +445,8 @@ if __name__ == '__main__':
         class_list = split_data(opt.input_path, output_folder, opt.classes_file, 
                                 opt.set_1, opt.set_2, opt.set_3,
                                 opt.ratio_set_1, opt.ratio_set_2, opt.ratio_set_3, 
-                                opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,annotations_file = None)
+                                opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
+                                multispectral = opt.multispectral,annotations_file = None)
                                 
         create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
 
@@ -443,7 +454,8 @@ if __name__ == '__main__':
         class_list = split_data(opt.input_path, output_folder, opt.classes_file, 
                                 opt.set_1, opt.set_2, opt.set_3,
                                 opt.ratio_set_1, opt.ratio_set_2, opt.ratio_set_3, 
-                                opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,annotations_file = opt.annotations_file)
+                                opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
+                                multispectral = opt.multispectral,annotations_file = opt.annotations_file)
         create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
 
 
