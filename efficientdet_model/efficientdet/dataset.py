@@ -6,10 +6,11 @@ from torch.utils.data import Dataset, DataLoader
 from pycocotools.coco import COCO
 from torchvision import transforms
 import cv2
+import rasterio
 
 
 class CocoDataset(Dataset):
-    def __init__(self, root_dir, set='train2017', transform=None, policy_container=None, use_only_aug=False):
+    def __init__(self, root_dir, set='train2017', transform=None, bands_to_apply=None, use_only_vl=False):
         '''
         Definition of the Dataset, policies and transformation to be used.
 
@@ -17,21 +18,22 @@ class CocoDataset(Dataset):
         :root_dir (string): root location of the dataset.
         :set (string): name of the dataset - this name must match the physical folder.
         :transform (torchvision.transforms.Compose): sequence of transformations to apply to the data.
-        :policy_container (bbaug.policies): set of policies from where one will be chosen to be applied.
-        :use_only_aug (bool) -> indicates if training will use only augmented images.
+        :bands_to_apply (List<int>): list of numbers that will indicate wich bands will be used for training.
+        :use_only_vl (bool) -> indicates if training will use only the visible light images.
         '''
         self.root_dir = root_dir
         self.set_name = set
         self.transform = transform
-
+        self.use_only_vl = use_only_vl
+        self.bands_to_apply = bands_to_apply
         self.coco = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.json'))
         self.image_ids = self.coco.getImgIds()
 
         self.load_classes()
         #-----------------
-        self.policy_container = policy_container
-        self.to_tensor = transforms.ToTensor()
-        self.use_only_aug = use_only_aug 
+        #self.policy_container = policy_container
+        #self.to_tensor = transforms.ToTensor()
+        #self.use_only_aug = use_only_aug 
         #-----------------
 
 
@@ -76,14 +78,6 @@ class CocoDataset(Dataset):
         Params
         :image_index (int) -> id of the image (corresponding to the json file).
 
-        Return <if there is a policy>
-        :img (torch.tensor) -> image already normalized.
-        :boxes (torch.tensor) -> annotations. Shape -> [batch , bounding_boxes , 5]. 5 -> first 4 for the coordinates and the final position for the category.
-        :imgName (string) -> original name of the image.
-        :img_aug (torch.tensor) -> augmented image (resulting image from the library bbaug).
-        :bbs_aug (torch.tensor) -> annotations. Shape -> [batch , bounding_boxes , 5]. 5 -> first 4 for the coordinates and the final position for the category.
-        :imgName_aug (string) -> name of the augmented image (same name of the original but with 'aug_' added at the beginning).
-
         Return <if there is NO policy>
         :img (torch.tensor) -> image already normalized.
         :boxes (torch.tensor) -> annotations. Shape -> [batch , bounding_boxes , 5]. 5 -> first 4 for the coordinates and the final position for the category.
@@ -92,8 +86,16 @@ class CocoDataset(Dataset):
 
         # get the name and read the image
         imgName = self.coco.loadImgs(self.image_ids[image_index])[0]['file_name']
-        img = cv2.imread(os.path.join(self.root_dir, self.set_name, imgName))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        filename, file_extension = os.path.splitext(imgName)
+        if self.use_only_vl:
+            img = cv2.imread(os.path.join(self.root_dir, self.set_name, imgName))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        else:
+            bands = []
+            ms_image = rasterio.open(os.path.join(self.root_dir, self.set_name, f'{imgName[:-len(file_extension)]}.TIF'))
+            for i in range(len(self.bands_to_apply)):
+                bands.append(ms_image.read(self.bands_to_apply[i]).astype('uint8'))
+            img = np.dstack(bands)
 
         # List: get annotation id from coco
         ann_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index], iscrowd=False)
@@ -115,80 +117,20 @@ class CocoDataset(Dataset):
             boxes.append([xmin, ymin, xmax, ymax])
             labels.append(int(label))
         
-        # Apply augmentation
-        if self.policy_container:
-            # Select a random sub-policy from the policy list
-            random_policy = self.policy_container.select_random_policy()
+        
+        img = img.astype(np.float32) / 255.
 
-            # Apply this augmentation to the image, returns the augmented image and bounding boxes
-            # The boxes must be at a pixel level. e.g. x_min, y_min, x_max, y_max with pixel values
-            img_aug, bbs_aug = self.policy_container.apply_augmentation(
-                random_policy,
-                img,
-                boxes,
-                labels,
-            )
-            img = img.astype(np.float32) / 255.
-            img_aug = img_aug.astype(np.float32) / 255.
+        # locate the category at the end
+        boxes = np.hstack(( np.array(boxes), np.vstack(labels) ))
 
-            # Add the labels to the boxes
-            labels = np.array(labels)
-            boxes = np.hstack(( np.array(boxes), np.vstack(labels) )) 
-            #bbs_aug = np.array(bbs_aug)
+        #create a temporal dictionary to apply the transformations
+        sample = {'img': img, 'annot': boxes}
+        if self.transform:
+            sample = self.transform(sample)
 
-            # normalization
-            #--------------
-            # create dictionary to apply the transformation 
-            sample_original = {'img': img, 'annot': boxes}
-            if self.transform:
-                sample_original = self.transform(sample_original)
-            # get the data from the resulting dictionary
-            img_t, boxes_t = sample_original['img'], sample_original['annot']
-            #--------------
-
-            # sometimes the augmentation gets rid of the bounding boxes
-            if len(bbs_aug.shape) > 1:
-
-                # normalization
-                #--------------
-                # Format correction from the augmentation: send category to the end of the row 
-                bbs_aug = bbs_aug[:, [1,2,3,4,0]].astype(np.float32) 
-                # create dictionary to apply the transformation
-                sample_augmented = {'img': img_aug, 'annot': bbs_aug}
-                if self.transform:
-                    sample_augmented = self.transform(sample_augmented)
-                # get the data from the resulting dictionary
-                img_aug_t, bbs_aug_t = sample_augmented['img'], sample_augmented['annot']
-                #--------------
-
-                if self.use_only_aug:
-                    return img_aug_t, bbs_aug_t.squeeze(), "aug_" + imgName, torch.tensor([]), torch.tensor([]), ""
-                else:
-                    return img_t, boxes_t.squeeze(), imgName, img_aug_t, bbs_aug_t.squeeze(), "aug_" + imgName
-
-            # augmentation got rid of bboxes... so, return just the original image
-            else:
-                if self.use_only_aug:
-                    img_aug_t, torch.tensor([]), "aug_" + imgName, torch.tensor([]), torch.tensor([]), ""
-                else:
-                    return img_t, boxes_t.squeeze(), imgName, torch.tensor([]), torch.tensor([]), ""
-                
-
-        # No augmentation at all
-        else:
-            img = img.astype(np.float32) / 255.
-
-            # locate the category at the end
-            boxes = np.hstack(( np.array(boxes), np.vstack(labels) ))
-
-            #create a temporal dictionary to apply the transformations
-            sample = {'img': img, 'annot': boxes}
-            if self.transform:
-                sample = self.transform(sample)
-
-            # recover the data and return
-            img_, boxes_ = sample['img'], sample['annot']
-            return img_, boxes_.squeeze(), imgName
+        # recover the data and return
+        img_, boxes_ = sample['img'], sample['annot']
+        return img_, boxes_.squeeze(), imgName
         
 
     def collater(self, batch):
@@ -201,73 +143,31 @@ class CocoDataset(Dataset):
         Return
         :dictionary -> {images: torch.tensor, annotations: torch.tensor, image_names: list(string)}
         '''
-        if self.policy_container:
-            # get data from the batch
-            imgs, annots, imgs_names, imgs_aug, annots_aug, imgs_names_aug = list(zip(*batch))
+        
+        # get data from the batch
+        imgs, annots, imgs_names = list(zip(*batch))
 
-            # create list from the unaugmented data
-            imgs = [i for i in imgs]
-            annots = [i for i in annots]
-            imgs_names = [i for i in imgs_names]
-            
-            # add augmented data if there are bounding boxes
-            for i, box_aug in enumerate(annots_aug):
-                if box_aug.numel() > 0:
-                    imgs.append(imgs_aug[i])
-                    annots.append(box_aug)
-                    imgs_names.append(imgs_names_aug[i])
+        # create list from the unaugmented data
+        imgs = [i for i in imgs]
+        imgs = torch.stack(imgs)
+        annots = [i for i in annots]
+        imgs_names = [i for i in imgs_names]
 
-            # convert list to tensor
-            imgs = torch.stack(imgs)
+        # Add padding to the annotations
+        #-------------------------------
+        # sometimes when there is only one bounding box, the dimension of the annotation is incorrect. E.g. torch.tensor([5]) instead of torch.tensor([1,5])
+        annots = [an if len(list(an.shape)) != 1 else an.unsqueeze(dim=0) for an in annots]
+        max_num_annots = max(annot.shape[0] for annot in annots)
 
+        if max_num_annots > 0:
+            annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
 
-            # Add padding to the annotations
-            #-------------------------------
-            # sometimes when there is only one bounding box, the dimension of the annotation is incorrect. E.g. torch.tensor([5]) instead of torch.tensor([1,5])
-            annots = [an if len(list(an.shape)) != 1 else an.unsqueeze(dim=0) for an in annots]
-
-            # ask for the image that has more bounding boxes and add padding to the rest of the bounding boxes
-            # Why? because the format in which the loss functions needs the data. So, all annotations will have the same dimension filled with -1s.
-            max_num_annots = max(annot.shape[0] for annot in annots) 
-            if max_num_annots > 0:
-                annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
-                for idx, annot in enumerate(annots):
-                    if annot.shape[0] > 0:
-                        annot_padded[idx, :annot.shape[0], :] = annot
-            else:
-                annot_padded = torch.ones((len(annots), 1, 5)) * -1
-            #-------------------------------
-
-            # return a dictionary
-            return {'img': imgs, 'annot': annot_padded, 'img_names': imgs_names}
-
-
-        # No augmentation at all
+            for idx, annot in enumerate(annots):
+                if annot.shape[0] > 0:
+                    annot_padded[idx, :annot.shape[0], :] = annot
         else:
-            # get data from the batch
-            imgs, annots, imgs_names = list(zip(*batch))
-
-            # create list from the unaugmented data
-            imgs = [i for i in imgs]
-            imgs = torch.stack(imgs)
-            annots = [i for i in annots]
-            imgs_names = [i for i in imgs_names]
-
-            # Add padding to the annotations
-            #-------------------------------
-            # sometimes when there is only one bounding box, the dimension of the annotation is incorrect. E.g. torch.tensor([5]) instead of torch.tensor([1,5])
-            annots = [an if len(list(an.shape)) != 1 else an.unsqueeze(dim=0) for an in annots]
-            max_num_annots = max(annot.shape[0] for annot in annots)
-
-            if max_num_annots > 0:
-                annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
-
-                for idx, annot in enumerate(annots):
-                    if annot.shape[0] > 0:
-                        annot_padded[idx, :annot.shape[0], :] = annot
-            else:
-                annot_padded = torch.ones((len(annots), 1, 5)) * -1
-            #-------------------------------
+            annot_padded = torch.ones((len(annots), 1, 5)) * -1
+        #-------------------------------
 
             # return a dictionary
             return {'img': imgs, 'annot': annot_padded, 'img_names': imgs_names}

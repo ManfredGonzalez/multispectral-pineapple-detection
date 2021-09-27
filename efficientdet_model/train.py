@@ -22,7 +22,6 @@ from efficientdet.dataset import CocoDataset, Resizer, Normalizer#, Augmenter#, 
 from efficientdet.loss import FocalLoss
 from utils.sync_batchnorm import patch_replication_callback
 from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights, init_weights, boolean_string
-from bbaug.policies import policies
 
 
 class ModelWithLoss(nn.Module):
@@ -67,7 +66,7 @@ class ModelWithLoss(nn.Module):
 
 
 
-def train(opt, use_seed, aug_policy_container):
+def train(opt, use_seed):
     '''
     Perform training of the model.
 
@@ -105,14 +104,19 @@ def train(opt, use_seed, aug_policy_container):
     # these are the standard sizes
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536] 
     #input_sizes = [1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280] 
+    
+    #list of bands to use for training
+    if not opt.use_only_vl:
+        bands_to_apply = [int(item) for item in opt.bands_to_apply.split(' ')]
 
     # define the training and validation sets
+
     training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
                                 set=params.train_set,
                                 transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
                                                              Resizer(input_sizes[opt.compound_coef])]),
-                                policy_container = aug_policy_container,
-                                use_only_aug = opt.use_only_aug)
+                                bands_to_apply = bands_to_apply,
+                                use_only_vl = opt.use_only_vl)
 
     training_generator = DataLoader(training_set, 
                                     batch_size= opt.batch_size,
@@ -121,18 +125,13 @@ def train(opt, use_seed, aug_policy_container):
                                     collate_fn= training_set.collater,
                                     num_workers= opt.num_workers)
 
-    if opt.use_only_aug:
-        val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                                set=params.val_set,
-                                transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                            Resizer(input_sizes[opt.compound_coef])]),
-                                policy_container = aug_policy_container,
-                                use_only_aug = opt.use_only_aug)
-    else:
-        val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                                set=params.val_set,
-                                transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                            Resizer(input_sizes[opt.compound_coef])]))
+    
+    val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
+                            set=params.val_set,
+                            transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                        Resizer(input_sizes[opt.compound_coef])]),
+                            bands_to_apply = bands_to_apply,
+                            use_only_vl = opt.use_only_vl)
 
     val_generator = DataLoader(val_set, 
                                 batch_size= opt.batch_size, 
@@ -420,10 +419,8 @@ def get_args():
     parser.add_argument('--use_seed', type=boolean_string, default=False)
     parser.add_argument('--seed_values', type=str, default="")
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
-    parser.add_argument('--policy', type=str, default="")
-    parser.add_argument('--use_only_aug', type=boolean_string, default=False)
-    parser.add_argument('--orig_height', type=float, default=0)
-    parser.add_argument('--dest_height', type=float, default=0)
+    parser.add_argument('--bands_to_apply', type=str, default="1 2 3")
+    parser.add_argument('--use_only_vl', type=boolean_string, default=False)
 
     args = parser.parse_args()
     return args
@@ -443,71 +440,13 @@ if __name__ == '__main__':
     opt = get_args()
 
     # ask if we want to use a policy
-    aug_policy_container = None
     random_state = None
     print(' ')
     print('#########################')
-    print('POLICY NAME')
-    print(opt.policy)
-    print(opt.use_only_aug)
+    print('Training Mode')
+    print(f'Trining using visible light: {opt.use_only_vl}')
+    print(f'Bands for training: {opt.bands_to_apply}')
     print('#########################')
-    if len(opt.policy) > 1:
-
-        # select the policy
-        if opt.policy == 'stac':
-            aug_policy = policies.policies_STAC()
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-
-        if opt.policy == 'scaling':
-            orig = opt.orig_height
-            dest = opt.dest_height
-            scaling_ratio = 1.0/(dest/orig)
-            aug_policy = policies.policies_pineapple(scaling_ratio)
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-            print('#########################')
-            print('Scaling magnitude')
-            print(scaling_ratio)
-            print('#########################')
-        '''
-        elif opt.policy == 'scaling_6m':
-            ori = 5
-            dest = 6
-            scaling = 1/(dest/ori)
-            aug_policy = policies.policies_pineapple(scaling)
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-            print('#########################')
-            print('Scaling magnitude')
-            print(scaling)
-            print('#########################')
-        elif opt.policy == 'scaling_7m':
-            ori = 5
-            dest = 7
-            scaling = 1/(dest/ori)
-            aug_policy = policies.policies_pineapple(scaling)
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-            print('#########################')
-            print('Scaling magnitude')
-            print(scaling)
-            print('#########################')
-        elif opt.policy == 'scaling_8m':
-            ori = 5
-            dest = 8
-            scaling = 1/(dest/ori)
-            aug_policy = policies.policies_pineapple(scaling)
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-            print('#########################')
-            print('Scaling magnitude')
-            print(scaling)
-            print('#########################')
-        elif opt.policy == 'scaling_9m':
-            ori = 5
-            dest = 9
-            scaling = 1/(dest/ori)
-            aug_policy = policies.policies_pineapple(scaling)
-            aug_policy_container = policies.PolicyContainer(aug_policy, random_state = None if opt.use_seed == False else 42)
-            print('#########################')
-            print('Scaling magnitude')
-            print(scaling)
-            print('#########################')
-        '''
-    train(opt, opt.use_seed, aug_policy_container) 
+    os.chdir(os.path.join(os.getcwd(),'efficientdet_model'))
+    train(opt, opt.use_seed) 
+    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
