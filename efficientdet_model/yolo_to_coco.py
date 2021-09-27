@@ -437,8 +437,8 @@ if __name__ == '__main__':
     sub_sample = 0'''
     opt = get_args()
 
-    output_folder = 'datasets/' + opt.project_name + '/'
-    output_yml = 'projects/' + opt.project_name + '.yml'
+    output_folder = os.path.dirname(os.path.abspath(__file__))+'/datasets/' + opt.project_name + '/'
+    output_yml = os.path.dirname(os.path.abspath(__file__))+'/projects/' + opt.project_name + '.yml'
 
     #run split
     if opt.yolo_version == 'v3':

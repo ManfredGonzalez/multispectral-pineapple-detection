@@ -1,0 +1,11 @@
+project_name: 5m_pineapple_10
+train_set: train
+train_set_unlabeled: None
+val_set: val
+test_set: test
+num_gpus: 1
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+anchors_scales: '[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]'
+anchors_ratios: '[(1.0, 1.0), (1.4, 0.7), (0.7, 1.4)]'
+obj_list: ['pineapple']
