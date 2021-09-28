@@ -417,28 +417,11 @@ def get_args():
     args = parser.parse_args()
     return args
 if __name__ == '__main__':
-    '''input_path = 'datasets/5m_pineapple_yolov3/'
-    #annotations_file = "_annotations.txt"
-    annotations_file = None
-    classes_file = "classes.txt"
-    project_name = "5m_pineapple_10"
-    set_1 = "train"
-    set_2 = "val"
-    set_3 = "test" 
-    set_4 = "None"
-    img_extension = "JPG"
-
-    ratio_set_1 = 0.7
-    ratio_set_2 = 0.15
-    ratio_set_3 = 0.15
-
-    shuffle = True
-    seed = 10
-    sub_sample = 0'''
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     opt = get_args()
-
-    output_folder = os.path.dirname(os.path.abspath(__file__))+'/datasets/' + opt.project_name + '/'
-    output_yml = os.path.dirname(os.path.abspath(__file__))+'/projects/' + opt.project_name + '.yml'
+    
+    output_folder = 'datasets/' + opt.project_name + '/'
+    output_yml = 'projects/' + opt.project_name + '.yml'
 
     #run split
     if opt.yolo_version == 'v3':
@@ -457,36 +440,4 @@ if __name__ == '__main__':
                                 opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
                                 multispectral = opt.multispectral,annotations_file = opt.annotations_file)
         create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
-
-
-    '''
-    if(False):
-        input_path = 'datasets/yolo_format/apple_yolov4pytorch/'
-        annotations_file = "_annotations.txt"
-        classes_file = "_classes.txt"
-        project_name = "apple_h1"
-        set_1 = "train"
-        set_2 = "val"
-        set_3 = "test" 
-        #set_4 = "unlabeled"
-        img_extension = "jpg"
-
-        ratio_set_1 = 0.7
-        ratio_set_2 = 0.15
-        ratio_set_3 = 0.15
-
-        shuffle = True
-        seed = 12
-        sub_sample = 0
-
-        output_folder = 'datasets/' + project_name + '/'
-        output_yml = 'projects/' + project_name + '.yml'
-
-        #run split
-        class_list = split_data(input_path, output_folder, annotations_file, classes_file, 
-                                set_1, set_2, set_3,
-                                ratio_set_1, ratio_set_2, ratio_set_3, 
-                                shuffle, sub_sample, seed, img_extension)
-        #create yml
-        create_project_file(project_name, output_yml, set_1, set_3, set_3, set_2, class_list)
-    '''
+    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
