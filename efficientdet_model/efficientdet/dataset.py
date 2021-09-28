@@ -169,8 +169,8 @@ class CocoDataset(Dataset):
             annot_padded = torch.ones((len(annots), 1, 5)) * -1
         #-------------------------------
 
-            # return a dictionary
-            return {'img': imgs, 'annot': annot_padded, 'img_names': imgs_names}
+        # return a dictionary
+        return {'img': imgs, 'annot': annot_padded, 'img_names': imgs_names}
         
 
 
