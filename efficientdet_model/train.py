@@ -104,7 +104,7 @@ def train(opt, use_seed):
     # these are the standard sizes
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536] 
     #input_sizes = [1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280] 
-    
+    bands_to_apply = None
     #list of bands to use for training
     if not opt.use_only_vl:
         bands_to_apply = [int(item) for item in opt.bands_to_apply.split(' ')]
