@@ -15,11 +15,8 @@ from pycocotools.cocoeval import COCOeval
 
 from backbone import EfficientDetBackbone
 from efficientdet.utils import BBoxTransform, ClipBoxes
-from utils.utils import preprocess, invert_affine, postprocess_original, boolean_string
-from bbaug.policies import policies
-
-from coco_to_coco_augmented import generate_COCO_Dataset_transformed
-sys.path.append("metrics/")
+from utils.utils import preprocess_ml, invert_affine, postprocess_original, boolean_string
+sys.path.append("efficientdet_model/metrics/")
 from metrics.mean_avg_precision import mean_average_precision
 
 def get_rois_from_gtjson(coco_json):
@@ -59,7 +56,7 @@ def get_predictions(imgs_path,
                     nms_threshold, 
                     input_sizes, 
                     compound_coef, 
-                    use_cuda):
+                    use_cuda, bands_to_apply = None):
     '''
     Run the prediction of bounding boxes and store the results into a file
 
@@ -92,8 +89,11 @@ def get_predictions(imgs_path,
         image_info = coco.loadImgs(image_id)[0]
         image_path = imgs_path + image_info['file_name']
 
+        if bands_to_apply:
+            filename, file_extension = os.path.splitext(image_path)
+            image_path = f'{image_path[:-len(file_extension)]}.TIF'
         # preprocess image and bounding boxes
-        ori_imgs, framed_imgs, framed_metas = preprocess(image_path, max_size=input_sizes[compound_coef])
+        ori_imgs, framed_imgs, framed_metas = preprocess_ml(image_path, max_size=input_sizes[compound_coef],bands_to_apply=bands_to_apply)
         x = torch.from_numpy(framed_imgs[0])
 
         # use cuda and floating point precision
@@ -252,15 +252,14 @@ def run_metrics(compound_coef,
                 project_name, 
                 weights_path, 
                 max_detect_list,
-                orig_height= 5,
-                dest_height= 8,
                 input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536],
                 #input_sizes = [1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280],
                 metric_option='coco',
                 set_to_use='test_set',
-                augment_dataset=True,
                 num_of_workers=0,
-                batch_size=2):    
+                batch_size=2,
+                use_only_vl=False,
+                bands_to_apply = None):    
 
     '''
     Method to perform the calculation of the metrics.
@@ -292,60 +291,6 @@ def run_metrics(compound_coef,
     SET_NAME = params[set_to_use]
     dataset_json = f'datasets/{params["project_name"]}/annotations/instances_{SET_NAME}.json'
     dataset_imgs_path = f'datasets/{params["project_name"]}/{SET_NAME}/'
-
-
-    # augment the dataset before calculating metrics
-    #==================================
-    if augment_dataset:
-        output_folder = f'datasets/{params["project_name"]}/{set_to_use}_transformed_{orig_height}_{dest_height}/'
-        gt_augmented_file = f'datasets/{params["project_name"]}/annotations/instances_{set_to_use}_transformed_{orig_height}_{dest_height}.json'
-        write_yml = True
-
-        # delete file and folder if exist and then, create them
-        if os.path.exists(output_folder):
-            write_yml = False
-            shutil.rmtree(output_folder)
-        if os.path.exists(gt_augmented_file):
-            os.remove(gt_augmented_file)
-        while os.path.exists(output_folder):
-            print("waiting")
-            pass
-        while os.path.exists(gt_augmented_file):
-            print("waiting")
-            pass
-
-        # create directories
-        if not os.path.exists(output_folder):
-            os.mkdir(output_folder)
-
-        # create new file with a fixed name
-        new_set_name = f'{set_to_use}_transformed_{orig_height}_{dest_height}'
-        if write_yml:
-            with open(f'projects/{project_name}.yml', 'a') as my_file:
-                my_file.write(f'{new_set_name}: {new_set_name}\n')
-
-        # calculate the magnitude for the scaling policy
-        real_scale = 1.0/(dest_height/orig_height)
-        
-        # instance the scaling policy
-        aug_policy = policies.policies_pineapple(real_scale)
-        #---------
-        # Generate the transformed coco json file of the ground truth 
-        generate_COCO_Dataset_transformed(output_folder,
-                                            gt_augmented_file,
-                                            obj_list,
-                                            dataset_imgs_path[:len(dataset_imgs_path)-1],
-                                            dataset_json,
-                                            aug_policy,
-                                            num_of_workers,
-                                            batch_size)
-        #---------
-        # set the new the transformed ground truth file as the current ground truth file
-        params = yaml.safe_load(open(f'projects/{project_name}.yml'))
-        SET_NAME = params[new_set_name]
-        dataset_json = f'datasets/{params["project_name"]}/annotations/instances_{SET_NAME}.json'
-        dataset_imgs_path = f'datasets/{params["project_name"]}/{SET_NAME}/'
-    #==================================
 
     # load data set
     coco = COCO(dataset_json)
@@ -379,7 +324,11 @@ def run_metrics(compound_coef,
     if use_cuda:
         model.cuda()
 
-            
+    
+    if not use_only_vl:
+        bands_to_apply = [int(item) for item in bands_to_apply.split(' ')]
+    else:
+        bands_to_apply = None        
     #run the prediction of the bounding boxes and store results into a file
     predictions,listPred = get_predictions(dataset_imgs_path, 
                                 SET_NAME, 
@@ -390,7 +339,8 @@ def run_metrics(compound_coef,
                                 nms_threshold,
                                 input_sizes, 
                                 compound_coef, 
-                                use_cuda)  
+                                use_cuda,
+                                bands_to_apply = bands_to_apply)  
     #---------------------------------------------------------------------------------------------------------
 
 
@@ -464,12 +414,11 @@ def get_args():
     parser.add_argument('--nms_thres', type=float, default=0.5)
     parser.add_argument('--conf_thres', type=float, default=0.5)
     parser.add_argument('--use_cuda', type=boolean_string, default=False)
-    parser.add_argument('--max_detect', type=str, default="")
-    parser.add_argument('--augment_ds', type=boolean_string, default=False)    
+    parser.add_argument('--max_detect', type=str, default="10000")  
     parser.add_argument('--debug', type=boolean_string, default=False)
     parser.add_argument('--metric', type=str, default="simple")
-    parser.add_argument('--orig_height', type=int, default=0)
-    parser.add_argument('--dest_height', type=int, default=0)
+    parser.add_argument('--bands_to_apply', type=str, default="1 2 3")
+    parser.add_argument('--use_only_vl', type=boolean_string, default=False)
 
     args = parser.parse_args()
     return args
@@ -477,7 +426,8 @@ def get_args():
 
 #main method to be called
 if __name__ == '__main__':
-    throttle_cpu([28,29,30,31,32,33,34,35,36,37,38,39]) 
+    #throttle_cpu([28,29,30,31,32,33,34,35,36,37,38,39]) 
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     opt = get_args()
 
     # get the values from the string
@@ -491,9 +441,8 @@ if __name__ == '__main__':
                 opt.project, 
                 opt.weights,   
                 max_detections,
-                augment_dataset=opt.augment_ds,
-                metric_option=opt.metric, 
-                orig_height=opt.orig_height,
-                dest_height=opt.dest_height)
-
+                metric_option=opt.metric,
+                use_only_vl=opt.use_only_vl,
+                bands_to_apply=opt.bands_to_apply)
+    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     #test_case1()
