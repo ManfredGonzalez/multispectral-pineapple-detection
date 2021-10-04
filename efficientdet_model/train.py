@@ -74,7 +74,10 @@ def train(opt, use_seed):
     :opt (Class) -> parameters contained in the yml file.
     :use_seed (bool) -> indicates if we want to use a seed during training.
     '''
-
+     # these are the standard sizes
+    input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536] 
+    if opt.input_sizes:
+        input_sizes = [int(item) for item in opt.input_sizes.split(' ')]
     # load project parameters
     params = Params(f'projects/{opt.project}.yml')
     if params.num_gpus == 0:
@@ -101,9 +104,7 @@ def train(opt, use_seed):
     os.makedirs(opt.log_path, exist_ok=True)
     os.makedirs(opt.saved_path, exist_ok=True)
 
-    # these are the standard sizes
-    input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536] 
-    #input_sizes = [1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280] 
+    
     bands_to_apply = None
     #list of bands to use for training
     if not opt.use_only_vl:
@@ -416,6 +417,7 @@ def get_args():
     parser.add_argument('--saved_path', type=str, default='logs/')
     parser.add_argument('--debug', type=boolean_string, default=False) # whether visualize the predicted boxes of training, the output images will be in test
     #----------------------
+    parser.add_argument('--input_sizes', type=str, default=None)
     parser.add_argument('--use_seed', type=boolean_string, default=False)
     parser.add_argument('--seed_values', type=str, default="")
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
