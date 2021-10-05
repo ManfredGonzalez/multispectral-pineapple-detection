@@ -1,18 +1,15 @@
-import bs4
-from bs4 import BeautifulSoup
 import cv2
 import numpy as np
 def getXMPData(filePath):
     fin = open( filePath, "rb")
     img = fin.read()
     imgAsString=str(img)
-    xmp_start = imgAsString.find('<x:xmpmeta')
-    xmp_end = imgAsString.find('</x:xmpmeta')
+    xmp_start = imgAsString.find('<rdf:Description')
+    xmp_end = imgAsString.find('</rdf:Description>')
     if xmp_start != xmp_end:
-        xmpString = imgAsString[xmp_start:xmp_end+12]
+        xmpString = imgAsString[xmp_start:xmp_end+len('</rdf:Description>')]
     
-    xmpAsXML = BeautifulSoup(xmpString, "xml")
-    info = str(xmpAsXML.Description).split('drone-dji:')
+    info = xmpString.split('drone-dji:')
     info_dji = info[1:len(info)-1]
     keys = []
     values = []

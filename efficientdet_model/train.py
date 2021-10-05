@@ -432,7 +432,7 @@ def get_args():
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
     parser.add_argument('--bands_to_apply', type=str, default="1 2 3")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
-    parser.add_argument('--use_normalization', type=boolean_string, default=False)
+    parser.add_argument('--use_normalization', type=boolean_string, default=True)
 
     args = parser.parse_args()
     return args
