@@ -115,24 +115,24 @@ def train(opt, use_seed):
         training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
                                     set=params.train_set,
                                     transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                                Resizer(input_sizes[opt.compound_coef])]),
+                                                                Resizer(input_sizes[opt.compound_coef],num_of_channels=len(bands_to_apply))]),
                                     bands_to_apply = bands_to_apply,
                                     use_only_vl = opt.use_only_vl)
         val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
                             set=params.val_set,
                             transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                        Resizer(input_sizes[opt.compound_coef])]),
+                                                        Resizer(input_sizes[opt.compound_coef],num_of_channels=len(bands_to_apply))]),
                             bands_to_apply = bands_to_apply,
                             use_only_vl = opt.use_only_vl)
     else:
         training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
                                     set=params.train_set,
-                                    transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef])]),
+                                    transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef],num_of_channels=len(bands_to_apply))]),
                                     bands_to_apply = bands_to_apply,
                                     use_only_vl = opt.use_only_vl)
         val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
                             set=params.val_set,
-                            transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef])]),
+                            transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef],num_of_channels=len(bands_to_apply))]),
                             bands_to_apply = bands_to_apply,
                             use_only_vl = opt.use_only_vl)
 

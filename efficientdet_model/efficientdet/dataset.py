@@ -177,7 +177,7 @@ class CocoDataset(Dataset):
 class Resizer(object):
     """Convert ndarrays in sample to Tensors AND apply resizing to the image and annotations."""
     
-    def __init__(self, img_size=512):
+    def __init__(self, img_size=512, num_of_channels=3):
         '''
         Resizing the image into a fixed value.
 
@@ -186,6 +186,7 @@ class Resizer(object):
         '''
         self.img_size = img_size
         self.to_tensor = transforms.ToTensor()
+        self.num_of_channels = num_of_channels
 
     def __call__(self, sample):
         '''
@@ -214,7 +215,7 @@ class Resizer(object):
         image = cv2.resize(image, (resized_width, resized_height), interpolation=cv2.INTER_LINEAR)
 
         # add zero-padding if necessary
-        new_image = np.zeros((self.img_size, self.img_size, 3))
+        new_image = np.zeros((self.img_size, self.img_size, self.num_of_channels))
         new_image[0:resized_height, 0:resized_width] = image
 
         # scale the bounding boxes
