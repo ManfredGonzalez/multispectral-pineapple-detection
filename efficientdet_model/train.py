@@ -99,8 +99,13 @@ def train(opt, use_seed):
         torch.backends.cudnn.deterministic = True
 
     # read paths to save weights
-    opt.saved_path = opt.saved_path + f'/{params.project_name}/'
-    opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
+    
+    if opt.use_only_vl:
+        opt.saved_path = opt.saved_path + f'/{params.project_name}_vl/'
+        opt.log_path = opt.log_path + f'/{params.project_name}_vl/tensorboard/'
+    else:
+        opt.saved_path = opt.saved_path + f'/{params.project_name}_{opt.bands_to_apply}/'
+        opt.log_path = opt.log_path + f'/{params.project_name}_{opt.bands_to_apply}/tensorboard/'
     os.makedirs(opt.log_path, exist_ok=True)
     os.makedirs(opt.saved_path, exist_ok=True)
 
@@ -108,7 +113,7 @@ def train(opt, use_seed):
     bands_to_apply = None
     #list of bands to use for training
     if not opt.use_only_vl:
-        bands_to_apply = [int(item) for item in opt.bands_to_apply.split(' ')]
+        bands_to_apply = [int(item) for item in opt.bands_to_apply.split('_')]
         in_channels = len(bands_to_apply)
     else:
         in_channels = 3
@@ -434,7 +439,7 @@ def get_args():
     parser.add_argument('--use_seed', type=boolean_string, default=False)
     parser.add_argument('--seed_values', type=str, default="")
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
-    parser.add_argument('--bands_to_apply', type=str, default="1 2 3")
+    parser.add_argument('--bands_to_apply', type=str, default="1_2_3")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
     parser.add_argument('--use_normalization', type=boolean_string, default=True)
 
