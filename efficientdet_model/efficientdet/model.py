@@ -461,9 +461,9 @@ class EfficientNet(nn.Module):
     modified by Zylo117
     """
 
-    def __init__(self, compound_coef, load_weights=False):
+    def __init__(self, compound_coef, load_weights=False, in_channels=3):
         super(EfficientNet, self).__init__()
-        model = EffNet.from_pretrained(f'efficientnet-b{compound_coef}', load_weights)
+        model = EffNet.from_pretrained(f'efficientnet-b{compound_coef}', load_weights,in_channels=in_channels)
         del model._conv_head
         del model._bn1
         del model._avg_pooling

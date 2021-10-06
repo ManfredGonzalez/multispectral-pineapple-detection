@@ -109,6 +109,9 @@ def train(opt, use_seed):
     #list of bands to use for training
     if not opt.use_only_vl:
         bands_to_apply = [int(item) for item in opt.bands_to_apply.split(' ')]
+        in_channels = len(bands_to_apply)
+    else:
+        in_channels = 3
 
     # define the training and validation sets
     if opt.use_normalization: 
@@ -153,6 +156,7 @@ def train(opt, use_seed):
     # define the model
     model = EfficientDetBackbone(num_classes=len(params.obj_list), 
                                 compound_coef=opt.compound_coef,
+                                in_channels = in_channels,
                                 ratios=eval(params.anchors_ratios), 
                                 scales=eval(params.anchors_scales))
 
