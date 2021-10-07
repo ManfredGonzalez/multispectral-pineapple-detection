@@ -312,10 +312,15 @@ def run_metrics(compound_coef,
     #---------------------------------------------------------------------------------------------------------
        
 
-
+    if not use_only_vl:
+        bands_to_apply = [int(item) for item in bands_to_apply.split('_')]
+        in_channels = len(bands_to_apply)
+    else:
+        bands_to_apply = None
+        in_channels = 3  
     # get detections
     #---------------------------------------------------------------------------------------------------------
-    model = EfficientDetBackbone(compound_coef=compound_coef, num_classes=len(obj_list),
+    model = EfficientDetBackbone(compound_coef=compound_coef, num_classes=len(obj_list),in_channels = in_channels,
                                     ratios=eval(params['anchors_ratios']), scales=eval(params['anchors_scales']))
     model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
     model.requires_grad_(False)
@@ -324,11 +329,7 @@ def run_metrics(compound_coef,
     if use_cuda:
         model.cuda()
 
-    
-    if not use_only_vl:
-        bands_to_apply = [int(item) for item in bands_to_apply.split(' ')]
-    else:
-        bands_to_apply = None        
+          
     #run the prediction of the bounding boxes and store results into a file
     predictions,listPred = get_predictions(dataset_imgs_path, 
                                 SET_NAME, 
