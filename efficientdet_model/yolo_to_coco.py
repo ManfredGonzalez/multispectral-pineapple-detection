@@ -12,6 +12,9 @@ import glob
 from utils.utils import boolean_string
 import argparse
 import sys
+from efficientdet.dataset import CocoDataset
+import torch
+from torch.utils.data import DataLoader
 
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -377,8 +380,23 @@ def annotations_to_json(file_input_dir, img_name, img_index, img_extension,
         ann_counter += 1
     return json_data, ann_counter
 
+def getMean_Std(project_name):
+    tif_images = glob.glob(f'datasets/{project_name}/train/*.TIF')
+    training_set = CocoDataset(root_dir=f'datasets/{project_name}/', 
+                                    set='train',
+                                    bands_to_apply = [1,2,3,4,5],
+                                    use_only_vl = False)
+    loader = DataLoader(training_set, batch_size=len(training_set), num_workers=1,collate_fn= training_set.collater)
+    data = next(iter(loader))
+    mean = []
+    std = []
+    for channel in range(data['img'].shape[1]):
+        mean.append(round(data['img'][:,channel,:,:].mean().to(torch.float32).item(),3))
+        std.append(round(data['img'][:,channel,:,:].std().to(torch.float32).item(),3))
+        
+    return mean,std
 
-def create_project_file(project_name, output_project_file, train_, val_, test_, unlabeled_, obj_list):
+def create_project_file(project_name, output_project_file, train_, val_, test_, unlabeled_, obj_list,mean=None,std=None):
     with open(output_project_file, 'w') as my_file:
         my_file.write(f'project_name: {project_name}\n')
         my_file.write(f'train_set: {train_}\n')
@@ -386,8 +404,12 @@ def create_project_file(project_name, output_project_file, train_, val_, test_, 
         my_file.write(f'val_set: {val_}\n')
         my_file.write(f'test_set: {test_}\n')
         my_file.write('num_gpus: 1\n')
-        my_file.write('mean: [0.485, 0.456, 0.406]\n')
-        my_file.write('std: [0.229, 0.224, 0.225]\n')
+        if mean and std:
+            my_file.write(f'mean: {mean}\n')
+            my_file.write(f'std: {std}\n')
+        else:
+            my_file.write('mean: [0.485, 0.456, 0.406]\n')
+            my_file.write('std: [0.229, 0.224, 0.225]\n')
         my_file.write("anchors_scales: '[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]'\n")
         my_file.write("anchors_ratios: '[(1.0, 1.0), (1.4, 0.7), (0.7, 1.4)]'\n")
         my_file.write(f'obj_list: {obj_list}\n')
@@ -412,7 +434,8 @@ def get_args():
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--sub_sample', type=int, default=0)
     parser.add_argument('--img_extension', type=str, default='jpg')
-    parser.add_argument('--multispectral', type=boolean_string, default=True) 
+    parser.add_argument('--multispectral', type=boolean_string, default=True)
+    parser.add_argument('--get_mean_std', type=boolean_string, default=False)
 
     args = parser.parse_args()
     return args
@@ -431,7 +454,7 @@ if __name__ == '__main__':
                                 opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
                                 multispectral = opt.multispectral,annotations_file = None)
                                 
-        create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
+        #create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
 
     elif opt.yolo_version == 'v4': 
         class_list = split_data(opt.input_path, output_folder, opt.classes_file, 
@@ -439,5 +462,10 @@ if __name__ == '__main__':
                                 opt.ratio_set_1, opt.ratio_set_2, opt.ratio_set_3, 
                                 opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
                                 multispectral = opt.multispectral,annotations_file = opt.annotations_file)
-        create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list)
+    if opt.get_mean_std:
+        mean, std = getMean_Std(opt.project_name)
+    else:
+        mean, std = None, None
+    create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list,mean=mean, std=std)
+    
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

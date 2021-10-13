@@ -28,6 +28,7 @@ class CocoDataset(Dataset):
         self.bands_to_apply = bands_to_apply
         self.coco = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.json'))
         self.image_ids = self.coco.getImgIds()
+        self.to_tensor = transforms.ToTensor()
 
         self.load_classes()
         #-----------------
@@ -127,6 +128,9 @@ class CocoDataset(Dataset):
         sample = {'img': img, 'annot': boxes}
         if self.transform:
             sample = self.transform(sample)
+        else:
+            sample['img'] = self.to_tensor(sample['img']).to(torch.float32)
+            sample['annot'] = self.to_tensor(sample['annot'])
 
         # recover the data and return
         img_, boxes_ = sample['img'], sample['annot']

@@ -34,6 +34,33 @@ def invert_affine(metas: Union[float, list, tuple], preds):
                 preds[i]['rois'][:, [1, 3]] = preds[i]['rois'][:, [1, 3]] / (new_h / old_h)
     return preds
 
+def aspectaware_resize_padding_ml(image, width, height, interpolation=None, means=None):
+    old_h, old_w, c = image.shape
+    if old_w > old_h:
+        new_w = width
+        new_h = int(width / old_w * old_h)
+    else:
+        new_w = int(height / old_h * old_w)
+        new_h = height
+
+    canvas = np.zeros((height, height, c), np.float32)
+    if means is not None:
+        canvas[...] = means
+
+    if new_w != old_w or new_h != old_h:
+        if interpolation is None:
+            image = cv2.resize(image, (new_w, new_h))
+        else:
+            image = cv2.resize(image, (new_w, new_h), interpolation=interpolation)
+
+    padding_h = height - new_h
+    padding_w = width - new_w
+    if c == 1:
+        image = np.dstack([image])
+    canvas[0:new_h, 0:new_w] = image
+    #canvas[:new_h, :new_w] = image
+
+    return canvas, new_w, new_h, old_w, old_h, padding_w, padding_h,
 
 def aspectaware_resize_padding(image, width, height, interpolation=None, means=None):
     old_h, old_w, c = image.shape
@@ -105,8 +132,8 @@ def preprocess_ml(*image_path, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.
     else:
         # Images without normalization process
         normalized_imgs = ori_imgs
-    imgs_meta = [aspectaware_resize_padding(img, max_size, max_size,
-                                            means=None) for img in normalized_imgs]
+    imgs_meta = [aspectaware_resize_padding_ml(img, max_size, max_size,
+                                            means=None,interpolation=cv2.INTER_LINEAR) for img in normalized_imgs]
     framed_imgs = [img_meta[0] for img_meta in imgs_meta]
     framed_metas = [img_meta[1:] for img_meta in imgs_meta]
 
