@@ -404,12 +404,8 @@ def create_project_file(project_name, output_project_file, train_, val_, test_, 
         my_file.write(f'val_set: {val_}\n')
         my_file.write(f'test_set: {test_}\n')
         my_file.write('num_gpus: 1\n')
-        if mean and std:
-            my_file.write(f'mean: {mean}\n')
-            my_file.write(f'std: {std}\n')
-        else:
-            my_file.write('mean: [0.485, 0.456, 0.406]\n')
-            my_file.write('std: [0.229, 0.224, 0.225]\n')
+        my_file.write(f'mean: {mean}\n')
+        my_file.write(f'std: {std}\n')
         my_file.write("anchors_scales: '[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]'\n")
         my_file.write("anchors_ratios: '[(1.0, 1.0), (1.4, 0.7), (0.7, 1.4)]'\n")
         my_file.write(f'obj_list: {obj_list}\n')
@@ -465,7 +461,12 @@ if __name__ == '__main__':
     if opt.get_mean_std:
         mean, std = getMean_Std(opt.project_name)
     else:
-        mean, std = None, None
+        if opt.multispectral and not opt.get_mean_std:
+            mean=[0.158, 0.209, 0.189, 0.378, 0.509]
+            std=[0.085, 0.107, 0.089, 0.181, 0.246]
+        else:
+            mean = [0.485, 0.456, 0.406]
+            std = [0.229, 0.224, 0.225]
     create_project_file(opt.project_name, output_yml, opt.set_1, opt.set_2, opt.set_3, opt.set_4, class_list,mean=mean, std=std)
     
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
