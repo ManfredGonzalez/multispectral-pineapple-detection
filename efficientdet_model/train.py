@@ -178,14 +178,14 @@ def train(opt, use_seed):
         #print(f'[Info] loaded weights: {os.path.basename(weights_path)}, resuming checkpoint from step: {last_step}')
     else:
         #Random initialization
-        #print('[Info] initializing weights...')
-        #init_weights(model)
-        print("--------------------------------------------------")
+        print('[Info] initializing weights...')
+        init_weights(model)
+        '''print("--------------------------------------------------")
         print("--------------------------------------------------")
         print("error 1")
         print("--------------------------------------------------")
         print("--------------------------------------------------")
-        return None
+        return None'''
 
     # Freeze backbone if train head_only
     #----------------------------------------------------
