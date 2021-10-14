@@ -115,34 +115,32 @@ def train(opt, use_seed):
     if not opt.use_only_vl:
         bands_to_apply = [int(item) for item in opt.bands_to_apply.split('_')]
         in_channels = len(bands_to_apply)
+        new_mean = []
+        new_std = []
+        for index in bands_to_apply:
+            index = index - 1
+            new_mean.append(params.mean[index])
+            new_std.append(params.std[index])
+
+        params.mean = new_mean
+        params.std = new_std
     else:
         in_channels = 3
 
     # define the training and validation sets
-    if opt.use_normalization: 
-        training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                                    set=params.train_set,
-                                    transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                                Resizer(input_sizes[opt.compound_coef])]),
-                                    bands_to_apply = bands_to_apply,
-                                    use_only_vl = opt.use_only_vl)
-        val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                            set=params.val_set,
-                            transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                        Resizer(input_sizes[opt.compound_coef])]),
-                            bands_to_apply = bands_to_apply,
-                            use_only_vl = opt.use_only_vl)
-    else:
-        training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                                    set=params.train_set,
-                                    transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef])]),
-                                    bands_to_apply = bands_to_apply,
-                                    use_only_vl = opt.use_only_vl)
-        val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
-                            set=params.val_set,
-                            transform=transforms.Compose([Resizer(input_sizes[opt.compound_coef])]),
-                            bands_to_apply = bands_to_apply,
-                            use_only_vl = opt.use_only_vl)
+    
+    training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
+                                set=params.train_set,
+                                transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                            Resizer(input_sizes[opt.compound_coef])]),
+                                bands_to_apply = bands_to_apply,
+                                use_only_vl = opt.use_only_vl)
+    val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), 
+                        set=params.val_set,
+                        transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                    Resizer(input_sizes[opt.compound_coef])]),
+                        bands_to_apply = bands_to_apply,
+                        use_only_vl = opt.use_only_vl)
 
     training_generator = DataLoader(training_set, 
                                     batch_size= opt.batch_size,
@@ -441,7 +439,6 @@ def get_args():
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
     parser.add_argument('--bands_to_apply', type=str, default="1_2_3")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
-    parser.add_argument('--use_normalization', type=boolean_string, default=True)
 
     args = parser.parse_args()
     return args
