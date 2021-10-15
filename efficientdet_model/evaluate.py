@@ -9,6 +9,9 @@ import sys
 import argparse
 import torch
 import yaml
+import cv2
+import rasterio
+
 from tqdm import tqdm
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -88,10 +91,18 @@ def get_predictions(imgs_path,
     for image_id in tqdm(image_ids):
         image_info = coco.loadImgs(image_id)[0]
         image_path = imgs_path + image_info['file_name']
-
+        jpg_image_path = image_path
         if bands_to_apply:
             filename, file_extension = os.path.splitext(image_path)
             image_path = f'{image_path[:-len(file_extension)]}.TIF'
+            #############################################
+            '''ori_imgs = []
+            bands = []
+            ms_image = rasterio.open(image_path)
+            for i in range(len(bands_to_apply)):
+                bands.append(ms_image.read(bands_to_apply[i]).astype('uint8'))
+            ori_imgs.append(np.dstack(bands))'''
+            
         # preprocess image and bounding boxes
         ori_imgs, framed_imgs, framed_metas = preprocess_ml(image_path, max_size=input_sizes[compound_coef],bands_to_apply=bands_to_apply)
         x = torch.from_numpy(framed_imgs[0])
@@ -135,6 +146,17 @@ def get_predictions(imgs_path,
             # Translate from formats. In this: [x1,y1,x2,y2] -> [x1,y1,w,h]
             rois[:, 2] -= rois[:, 0]
             rois[:, 3] -= rois[:, 1]
+            
+            jpg_image = cv2.imread(jpg_image_path)
+            
+            if bands_to_apply:
+            
+                ori_imgs = []
+                bands = []
+                ms_image = rasterio.open(image_path)
+                for i in range(3):
+                    bands.append(ms_image.read(i+1).astype('uint8'))
+                ori_imgs.append(np.dstack(bands))
 
             # iterate over all bounding boxes
             for roi_id in range(rois.shape[0]):
@@ -152,6 +174,16 @@ def get_predictions(imgs_path,
                 # required for the simple metric
                 xmin, ymin, w, h = box.tolist()
                 predictions_boxes.append([image_id, label + 1, score, xmin, ymin, xmin + w, ymin + h])######### ?????????????????????????????
+                
+                cv2.rectangle(jpg_image, (int(xmin), int(ymin)), (int(xmin + w), int(ymin + h)), (255, 0, 0), 2)
+                '''cv2.putText(jpg_image, '{}, {:.3f}'.format('pineapple', int(score),
+                                (xmin,ymin), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                                (255, 255, 0), 1)'''
+
+            filename, file_extension = os.path.splitext(jpg_image_path)
+            new_img_path = f'{filename}_inferences{file_extension}'
+            cv2.imwrite(new_img_path,jpg_image)
+
 
     # write output
     filepath = f'results/{set_name}_bbox_results.json'
@@ -344,6 +376,7 @@ def run_metrics(compound_coef,
                                 use_cuda,
                                 bands_to_apply = bands_to_apply)  
     #---------------------------------------------------------------------------------------------------------
+    #os.makedirs(f'datasets/{project_name}/inferences_eval', exist_ok=True)
 
 
     # evaluate model using the ground truth and the predicted bounding boxes
