@@ -56,7 +56,7 @@ def get_predictions(imgs_path,
                     nms_threshold, 
                     input_sizes, 
                     compound_coef, 
-                    use_cuda, bands_to_apply = None, use_normalization=True):
+                    use_cuda, bands_to_apply = None):
     '''
     Run the prediction of bounding boxes and store the results into a file
 
@@ -93,7 +93,7 @@ def get_predictions(imgs_path,
             filename, file_extension = os.path.splitext(image_path)
             image_path = f'{image_path[:-len(file_extension)]}.TIF'
         # preprocess image and bounding boxes
-        ori_imgs, framed_imgs, framed_metas = preprocess_ml(image_path, max_size=input_sizes[compound_coef],bands_to_apply=bands_to_apply, use_normalization=use_normalization)
+        ori_imgs, framed_imgs, framed_metas = preprocess_ml(image_path, max_size=input_sizes[compound_coef],bands_to_apply=bands_to_apply)
         x = torch.from_numpy(framed_imgs[0])
 
         # use cuda and floating point precision
@@ -342,8 +342,7 @@ def run_metrics(compound_coef,
                                 input_sizes, 
                                 compound_coef, 
                                 use_cuda,
-                                bands_to_apply = bands_to_apply,
-                                use_normalization = use_normalization)  
+                                bands_to_apply = bands_to_apply)  
     #---------------------------------------------------------------------------------------------------------
 
 
@@ -420,9 +419,8 @@ def get_args():
     parser.add_argument('--max_detect', type=str, default="10000")  
     parser.add_argument('--debug', type=boolean_string, default=False)
     parser.add_argument('--metric', type=str, default="simple")
-    parser.add_argument('--bands_to_apply', type=str, default="1 2 3")
+    parser.add_argument('--bands_to_apply', type=str, default="1_2_3")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
-    parser.add_argument('--use_normalization', type=boolean_string, default=True)
 
     args = parser.parse_args()
     return args
@@ -447,7 +445,6 @@ if __name__ == '__main__':
                 max_detections,
                 metric_option=opt.metric,
                 use_only_vl=opt.use_only_vl,
-                bands_to_apply=opt.bands_to_apply,
-                use_normalization = opt.use_normalization)
+                bands_to_apply=opt.bands_to_apply)
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     #test_case1()

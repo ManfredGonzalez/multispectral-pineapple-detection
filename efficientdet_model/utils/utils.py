@@ -116,8 +116,10 @@ def preprocess(*image_path, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.229
 
     return ori_imgs, framed_imgs, framed_metas
 
-def preprocess_ml(*image_path, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),bands_to_apply=None, use_normalization=True):
+def preprocess_ml(*image_path, max_size=512,bands_to_apply=None, use_normalization=True):
     if bands_to_apply:
+        mean = [0.158, 0.209, 0.189, 0.378, 0.509]
+        std = [0.085, 0.107, 0.089, 0.181, 0.246]
         ori_imgs = []
         for img_path in image_path:
             bands = []
@@ -125,13 +127,22 @@ def preprocess_ml(*image_path, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.
             for i in range(len(bands_to_apply)):
                 bands.append(ms_image.read(bands_to_apply[i]).astype('uint8'))
             ori_imgs.append(np.dstack(bands))
+        new_mean = []
+        new_std = []
+        for index in bands_to_apply:
+            index = index - 1
+            new_mean.append(mean[index])
+            new_std.append(std[index])
+
+        mean = new_mean
+        std = new_std
     else:
+        mean=(0.485, 0.456, 0.406) 
+        std=(0.229, 0.224, 0.225)
         ori_imgs = [cv2.imread(img_path) for img_path in image_path]
-    if use_normalization:
-        normalized_imgs = [(img[..., ::-1] / 255 - mean) / std for img in ori_imgs]
-    else:
-        # Images without normalization process
-        normalized_imgs = ori_imgs
+        
+    normalized_imgs = [(img[..., ::-1] / 255 - mean) / std for img in ori_imgs]
+    
     imgs_meta = [aspectaware_resize_padding_ml(img, max_size, max_size,
                                             means=None,interpolation=cv2.INTER_LINEAR) for img in normalized_imgs]
     framed_imgs = [img_meta[0] for img_meta in imgs_meta]
