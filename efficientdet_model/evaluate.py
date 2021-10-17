@@ -454,6 +454,7 @@ def get_args():
     parser.add_argument('--metric', type=str, default="simple")
     parser.add_argument('--bands_to_apply', type=str, default="1_2_3")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
+    parser.add_argument('--input_sizes', type=str, default="512 640 768 896 1024 1280 1280 1536 1536")
 
     args = parser.parse_args()
     return args
@@ -467,7 +468,7 @@ if __name__ == '__main__':
 
     # get the values from the string
     max_detections = [int(item) for item in opt.max_detect.split(' ')]
-
+    input_sizes = [int(item) for item in opt.input_sizes.split(' ')]
     # main method to measure performance
     run_metrics(opt.compound_coef, 
                 opt.nms_thres, 
@@ -478,6 +479,7 @@ if __name__ == '__main__':
                 max_detections,
                 metric_option=opt.metric,
                 use_only_vl=opt.use_only_vl,
-                bands_to_apply=opt.bands_to_apply)
+                bands_to_apply=opt.bands_to_apply,
+                input_sizes = input_sizes)
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     #test_case1()
