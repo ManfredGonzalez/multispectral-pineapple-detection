@@ -99,18 +99,22 @@ def train(opt, seed=None):
     # read paths to save weights
     
     if opt.use_only_vl:
-        opt.saved_path = opt.saved_path + f'/{params.project_name}/'
-        opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
+        
         if seed:
             opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}/'
             opt.log_path = opt.log_path + f'/{params.project_name}_{seed}/tensorboard/'
+        else:
+            opt.saved_path = opt.saved_path + f'/{params.project_name}/'
+            opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
 
     else:
-        opt.saved_path = opt.saved_path + f'/{params.project_name}_{opt.bands_to_apply}/'
-        opt.log_path = opt.log_path + f'/{params.project_name}_{opt.bands_to_apply}/tensorboard/'
+        
         if seed:
             opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}_{opt.bands_to_apply}/'
             opt.log_path = opt.log_path + f'/{params.project_name}_{seed}_{opt.bands_to_apply}/tensorboard/'
+        else: 
+            opt.saved_path = opt.saved_path + f'/{params.project_name}_{opt.bands_to_apply}/'
+            opt.log_path = opt.log_path + f'/{params.project_name}_{opt.bands_to_apply}/tensorboard/'
 
     os.makedirs(opt.log_path, exist_ok=True)
     os.makedirs(opt.saved_path, exist_ok=True)
