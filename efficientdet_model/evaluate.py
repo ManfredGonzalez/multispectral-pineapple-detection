@@ -341,7 +341,7 @@ def run_metrics(compound_coef,
         os.mkdir('results/')
     with open(f'results/{params["project_name"]}_results_d{compound_coef}.csv', "a") as myfile:
         my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
-        my_writer.writerow(["metric","bands_used", "groundtruth_num", "num_detections", "nms_threshold", "confidence_threshold", "precision", "recall", "f1_score"])
+        my_writer.writerow(["metric","bands_used", "groundtruth_num", "num_detections", "nms_threshold", "confidence_threshold", "precision", "recall", "f1_score","weights_path"])
     #---------------------------------------------------------------------------------------------------------
        
 
@@ -423,9 +423,9 @@ def run_metrics(compound_coef,
     with open(f'results/{params["project_name"]}_results_d{compound_coef}.csv', "a") as myfile:
         my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
         if bands_to_apply:
-            my_writer.writerow([metric_option, bands_to_apply, groundtruth_num, predictions, nms_threshold, confidence_threshold, p, r, f1_result])
+            my_writer.writerow([metric_option, bands_to_apply, groundtruth_num, predictions, nms_threshold, confidence_threshold, p, r, f1_result,weights_path])
         else:
-            my_writer.writerow([metric_option, "Visible light", groundtruth_num, predictions, nms_threshold, confidence_threshold, p, r, f1_result])
+            my_writer.writerow([metric_option, "Visible light", groundtruth_num, predictions, nms_threshold, confidence_threshold, p, r, f1_result,weights_path])
     #--------------------------------------------
 
 
