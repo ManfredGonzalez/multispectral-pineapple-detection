@@ -94,7 +94,7 @@ def get_predictions(imgs_path,
         jpg_image_path = image_path
         if bands_to_apply:
             filename, file_extension = os.path.splitext(image_path)
-            image_path = f'{image_path[:-len(file_extension)]}.TIF'
+            image_path = filename
             #############################################
             '''ori_imgs = []
             bands = []

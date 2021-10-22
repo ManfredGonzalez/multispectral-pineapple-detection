@@ -116,23 +116,30 @@ def preprocess(*image_path, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.229
 
     return ori_imgs, framed_imgs, framed_metas
 
-def preprocess_ml(*image_path, max_size=512,bands_to_apply=None, use_normalization=True):
+def preprocess_ml(*image_path, max_size=512,bands_to_apply=None, band_extension='TIF'):
     if bands_to_apply:
-        mean = [0.158, 0.209, 0.189, 0.378, 0.509]
-        std = [0.085, 0.107, 0.089, 0.181, 0.246]
+        mean = [0.157, 0.208, 0.188, 0.377, 0.525]
+        std = [0.085, 0.107, 0.089, 0.181, 0.23]
         ori_imgs = []
         for img_path in image_path:
             bands = []
-            ms_image = rasterio.open(img_path)
-            for i in range(len(bands_to_apply)):
-                bands.append(ms_image.read(bands_to_apply[i]).astype('uint8'))
+            bands = []
+            for band_name in bands_to_apply:
+                band_path = f'{img_path}_{band_name}.{band_extension}'
+                bands.append(cv2.imread(band_path),cv2.IMREAD_GRAYSCALE)
             ori_imgs.append(np.dstack(bands))
         new_mean = []
         new_std = []
-        for index in bands_to_apply:
-            index = index - 1
-            new_mean.append(mean[index])
-            new_std.append(std[index])
+        bands_dict = {
+            'Red':0,
+            'Green':1,
+            'Blue':2,
+            'RedEdge':3,
+            'NIR':4
+        }
+        for bandName in bands_to_apply:
+            new_mean.append(mean[bands_dict[bandName]])
+            new_std.append(std[bands_dict[bandName]])
 
         mean = new_mean
         std = new_std
