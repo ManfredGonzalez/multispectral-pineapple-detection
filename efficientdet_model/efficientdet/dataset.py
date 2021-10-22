@@ -6,7 +6,6 @@ from torch.utils.data import Dataset, DataLoader
 from pycocotools.coco import COCO
 from torchvision import transforms
 import cv2
-import rasterio
 
 
 class CocoDataset(Dataset):
@@ -93,9 +92,8 @@ class CocoDataset(Dataset):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         else:
             bands = []
-            ms_image = rasterio.open(os.path.join(self.root_dir, self.set_name, f'{imgName[:-len(file_extension)]}.TIF'))
-            for i in range(len(self.bands_to_apply)):
-                bands.append(ms_image.read(self.bands_to_apply[i]).astype('uint8'))
+            for band_name in self.bands_to_apply:
+                bands.append(cv2.imread(os.path.join(self.root_dir, self.set_name, f'{imgName[:-len(file_extension)]}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
             img = np.dstack(bands)
 
         # List: get annotation id from coco

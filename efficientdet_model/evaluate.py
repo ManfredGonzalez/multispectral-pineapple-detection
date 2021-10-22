@@ -175,7 +175,7 @@ def get_predictions(imgs_path,
                 xmin, ymin, w, h = box.tolist()
                 predictions_boxes.append([image_id, label + 1, score, xmin, ymin, xmin + w, ymin + h])######### ?????????????????????????????
                 
-                cv2.rectangle(jpg_image, (int(xmin), int(ymin)), (int(xmin + w), int(ymin + h)), (255, 0, 0), 2)
+                #cv2.rectangle(jpg_image, (int(xmin), int(ymin)), (int(xmin + w), int(ymin + h)), (255, 0, 0), 2)
                 '''cv2.putText(jpg_image, '{}, {:.3f}'.format('pineapple', int(score),
                                 (xmin,ymin), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                                 (255, 255, 0), 1)'''

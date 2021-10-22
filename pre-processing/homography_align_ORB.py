@@ -12,8 +12,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import getXMPData,boolean_string
 from tqdm import tqdm
 
-MAX_FEATURES = 20000
-GOOD_MATCH_PERCENT = 0.25
+MAX_FEATURES = 50000
+GOOD_MATCH_PERCENT = 0.40
 def normalize(x, lower, upper):
     """ This is a simple linear normalization for an array to a given bound interval
 
@@ -158,6 +158,8 @@ def get_args():
     parser.add_argument('--start_numbering', type=int, default=0)
     parser.add_argument('--use_cuda', type=boolean_string, default=False) 
     parser.add_argument('-fe', '--files_extension', type=str, default="JPG")
+    parser.add_argument('--with_yv3_annot', type=boolean_string, default=False)
+    parser.add_argument('--save_tif', type=boolean_string, default=False)
 
     args = parser.parse_args()
     return args
@@ -170,7 +172,26 @@ def numberName(number,totalDigits):
         name = "0" + name
     name = name + str(number)
     return name
-def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering):
+
+def process(file_path,imReference):
+    meta_data = getXMPData(file_path)
+    #band = ms_band.read(1)
+    band = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+    vignettingData = [float(number) for number in meta_data['VignettingData'].split(',')]
+    band = vignetting_corection(float(meta_data['CalibratedOpticalCenterX']),float(meta_data['CalibratedOpticalCenterY']),vignettingData,band)
+    band = pixel_correction(float(meta_data['SensorGainAdjustment']), float(meta_data['SensorGain']), float(meta_data['Irradiance']),int(meta_data['ExposureTime']),band)
+    band = normalize(band,0,255).astype('uint8')
+    x = float(meta_data['RelativeOpticalCenterX'])
+    y = float(meta_data['RelativeOpticalCenterY'])
+    # Step 1
+    band = align_dif_camera_locations(band,x,y)
+    # Step 2
+    # smooth the image (optional)
+    #band = cv2.GaussianBlur(band,(5,5),0)
+    band, homography = align_dif_exposure_times(band, imReference)
+    return band
+
+def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering,with_yv3_annot=False,save_tif=False):
     '''
         This apply all the processing steps described at the Manual of the 
         drone DJI Phantom 4 Multispectral for image processing. Link of the manual:
@@ -183,7 +204,7 @@ def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering):
         root_dir: (string) Source path where images are located (ex: source/path/) 
         ref_file_ext: (string) Visible light images file extension (ex: JPG)
         results_path: (string) Directory where the results will be located
-        use_cuda: (boolean) use gpu or not
+        with_yv3_annot: (boolean) organize the annotations if they exist
 
     '''
     band_file_ext = 'TIF'
@@ -195,18 +216,19 @@ def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering):
         meta_data = getXMPData(rgb_image)
         images_dictionary.update (
             {
-                meta_data['CaptureUUID'] : [rgb_image]
+                meta_data['CaptureUUID'] : [(rgb_image,'visible_light')]
             }
         )
     for tif_image in myBands:
         meta_data = getXMPData(tif_image)
-        images_dictionary[meta_data['CaptureUUID']].append(tif_image)
+        images_dictionary[meta_data['CaptureUUID']].append((tif_image,meta_data['BandName']))
 
     imagecounter = 0
     imagesNamesRange = range(start_numbering,100000000)  ####### Specify the starting number
     bands = ['Red','Green','Blue','RedEdge','NIR']
     for key in tqdm(images_dictionary, desc="Image pre-processing"):
-        ref_file_path = images_dictionary[key][0]
+        ref_file_path,band_name = images_dictionary[key][0]
+        old_name = os.path.splitext(ref_file_path)[0]
         imageNewName = numberName(imagesNamesRange[imagecounter],8)
         imagecounter = imagecounter + 1
         imReference = cv2.imread(ref_file_path, cv2.IMREAD_COLOR)
@@ -214,45 +236,23 @@ def preprocess_DJI_images(root_dir,ref_file_ext,results_path,start_numbering):
         imReference = cv2.cvtColor(imReference, cv2.COLOR_BGR2RGB)
         imReference = cv2.cvtColor(imReference, cv2.COLOR_RGB2GRAY)
         shutil.copyfile(ref_file_path, f'{results_path}{imageNewName}.{ref_file_ext}')
-
-        bands = ['Red','Green','Blue','RedEdge','NIR']
-        ms_ref = rasterio.open(images_dictionary[key][1])
-        rgb_array = []
-        ms_image_all = rasterio.open(f'{results_path}{imageNewName}.{band_file_ext}','w',driver='Gtiff',
-                            width=ms_ref.width, 
-                            height = ms_ref.height, 
-                            count=5, crs=ms_ref.crs, 
-                            transform=ms_ref.transform, 
-                            dtype='float64')
+        if with_yv3_annot:
+            shutil.copyfile(f'{old_name}.txt', f'{results_path}{imageNewName}.txt')
 
         tif_bands = images_dictionary[key][1:]
+        nir_band = [item for item in tif_bands if item[1] == 'NIR'][0]
+        tif_bands = [item for item in tif_bands if item[1] != 'NIR']
+        for file_path,bandName in tif_bands:
         
-        for file_path in tif_bands:
-            ms_band = rasterio.open(file_path)
-            meta_data = getXMPData(file_path)
-            #band = ms_band.read(1)
-            band = ms_band.read(1)
-            vignettingData = [float(number) for number in meta_data['VignettingData'].split(',')]
-            band = vignetting_corection(float(meta_data['CalibratedOpticalCenterX']),float(meta_data['CalibratedOpticalCenterY']),vignettingData,band)
-            band = pixel_correction(float(meta_data['SensorGainAdjustment']), float(meta_data['SensorGain']), float(meta_data['Irradiance']),int(meta_data['ExposureTime']),band)
-            band = normalize(band,0,255).astype('uint8')
-            x = float(meta_data['RelativeOpticalCenterX'])
-            y = float(meta_data['RelativeOpticalCenterY'])
-            # Step 1
-            band = align_dif_camera_locations(band,x,y)
-            # Step 2
-            # smooth the image (optional)
-            #band = cv2.GaussianBlur(band,(5,5),0)
-            band, homography = align_dif_exposure_times(band, imReference)
-            
+            band = process(file_path,imReference)
             
             band[band == 0] = 1
-
+            cv2.imwrite(f'{results_path}{imageNewName}_{bandName}.{band_file_ext}',band)
             
-            ms_image_all.write(band,bands.index(meta_data['BandName'])+1)
-            
-        
-        ms_image_all.close()
+            if bandName == 'RedEdge':
+                band = process(nir_band[0],band)
+                band[band == 0] = 1
+                cv2.imwrite(f'{results_path}{imageNewName}_{nir_band[1]}.{band_file_ext}',band)
     print('Done!!')
 
 
@@ -261,6 +261,6 @@ if __name__ == '__main__':
 
     opt = get_args()
     
-    preprocess_DJI_images(opt.dir_path,opt.files_extension,opt.results_dir_path,opt.start_numbering)
+    preprocess_DJI_images(opt.dir_path,opt.files_extension,opt.results_dir_path,opt.start_numbering, opt.with_yv3_annot,opt.save_tif)
 
 

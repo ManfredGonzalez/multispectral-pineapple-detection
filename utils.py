@@ -6,8 +6,7 @@ def getXMPData(filePath):
     imgAsString=str(img)
     xmp_start = imgAsString.find('<rdf:Description')
     xmp_end = imgAsString.find('</rdf:Description>')
-    if xmp_start != xmp_end:
-        xmpString = imgAsString[xmp_start:xmp_end+len('</rdf:Description>')]
+    xmpString = imgAsString[xmp_start:xmp_end+len('</rdf:Description>')]
     
     info = xmpString.split('drone-dji:')
     info_dji = info[1:len(info)-1]

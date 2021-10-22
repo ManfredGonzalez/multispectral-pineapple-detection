@@ -123,14 +123,20 @@ def train(opt, seed=None):
     bands_to_apply = None
     #list of bands to use for training
     if not opt.use_only_vl:
-        bands_to_apply = [int(item) for item in opt.bands_to_apply.split('_')]
+        bands_to_apply = [item for item in opt.bands_to_apply.split(' ')]
         in_channels = len(bands_to_apply)
         new_mean = []
         new_std = []
-        for index in bands_to_apply:
-            index = index - 1
-            new_mean.append(params.mean[index])
-            new_std.append(params.std[index])
+        bands_dict = {
+            'Red':0,
+            'Green':1,
+            'Blue':2,
+            'RedEdge':3,
+            'NIR':4
+        }
+        for bandName in bands_to_apply:
+            new_mean.append(params.mean[bands_dict[bandName]])
+            new_std.append(params.std[bands_dict[bandName]])
 
         params.mean = new_mean
         params.std = new_std
@@ -447,7 +453,7 @@ def get_args():
     parser.add_argument('--use_seed', type=boolean_string, default=False)
     parser.add_argument('--seed_values', type=str, default="")
     parser.add_argument('--shuffle_ds', type=boolean_string, default=True)
-    parser.add_argument('--bands_to_apply', type=str, default="1_2_3")
+    parser.add_argument('--bands_to_apply', type=str, default="Red Green Blue RedEdge NIR")
     parser.add_argument('--use_only_vl', type=boolean_string, default=False)
 
     args = parser.parse_args()

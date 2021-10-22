@@ -52,7 +52,7 @@ def split_data(file_input_dir, output_folder,
                 name_1, name_2, name_3, 
                 set_1, set_2, set_3, 
                 shuffle, sub_sample, seed, img_extension,
-                multispectral=True, 
+                multispectral=None,
                 annotations_file=None):
     """
     Method to split into train/test/val sets.
@@ -66,6 +66,8 @@ def split_data(file_input_dir, output_folder,
     Returns
     :None.
     """
+    if multispectral:
+        multispectral = [item for item in multispectral.split(' ')]
     #get data
     if annotations_file:
         anns_names_list, anns_bboxes_list, class_list = files_to_array(file_input_dir + annotations_file, 
@@ -147,7 +149,8 @@ def split_data(file_input_dir, output_folder,
         folder = output_folder + name_1 + "/"
         copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
         if multispectral:
-            copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
+            for bandName in multispectral:
+                copyfile(file_input_dir + img_name + '_' + bandName + '.TIF', folder + img_name + '_' + bandName + '.TIF')
         #include annotations in the json
         final_json_train, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                   anns_names_list, anns_bboxes_list, json_data_train)
@@ -173,7 +176,8 @@ def split_data(file_input_dir, output_folder,
             folder = output_folder + f"{name_2}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
             if multispectral:
-                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
+                for bandName in multispectral:
+                    copyfile(file_input_dir + img_name + '_' + bandName + '.TIF', folder + img_name + '_' + bandName + '.TIF')
             #include annotations in the json
             final_json_val, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_val)
@@ -195,7 +199,8 @@ def split_data(file_input_dir, output_folder,
             folder = output_folder + f"{name_3}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
             if multispectral:
-                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
+                for bandName in multispectral:
+                    copyfile(file_input_dir + img_name + '_' + bandName + '.TIF', folder + img_name + '_' + bandName + '.TIF')
             #include annotations in the json
             final_json_test, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_test)
@@ -216,7 +221,8 @@ def split_data(file_input_dir, output_folder,
             folder = output_folder + f"{name_2}/"
             copyfile(file_input_dir + img_name + '.' + img_extension, folder + img_name + '.' + img_extension)
             if multispectral:
-                copyfile(file_input_dir + img_name + '.TIF', folder + img_name + '.TIF')
+                for bandName in multispectral:
+                    copyfile(file_input_dir + img_name + '_' + bandName + '.TIF', folder + img_name + '_' + bandName + '.TIF')
             #include annotations in the json
             final_json_test, ann_counter = annotations_to_json(file_input_dir, img_name, img_index, img_extension, ann_counter,
                                                                       anns_names_list, anns_bboxes_list, json_data_test)
@@ -381,10 +387,9 @@ def annotations_to_json(file_input_dir, img_name, img_index, img_extension,
     return json_data, ann_counter
 
 def getMean_Std(project_name):
-    tif_images = glob.glob(f'datasets/{project_name}/train/*.TIF')
     training_set = CocoDataset(root_dir=f'datasets/{project_name}/', 
                                     set='train',
-                                    bands_to_apply = [1,2,3,4,5],
+                                    bands_to_apply = ['Red','Green','Blue','RedEdge','NIR'],
                                     use_only_vl = False)
     loader = DataLoader(training_set, batch_size=len(training_set), num_workers=1,collate_fn= training_set.collater)
     data = next(iter(loader))
@@ -430,7 +435,7 @@ def get_args():
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--sub_sample', type=int, default=0)
     parser.add_argument('--img_extension', type=str, default='jpg')
-    parser.add_argument('--multispectral', type=boolean_string, default=True)
+    parser.add_argument('--multispectral', type=str, default='Red Green Blue RedEdge NIR') #Set this to None in case you want just the visible light images
     parser.add_argument('--get_mean_std', type=boolean_string, default=False)
 
     args = parser.parse_args()
@@ -458,12 +463,13 @@ if __name__ == '__main__':
                                 opt.ratio_set_1, opt.ratio_set_2, opt.ratio_set_3, 
                                 opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
                                 multispectral = opt.multispectral,annotations_file = opt.annotations_file)
+
     if opt.get_mean_std:
         mean, std = getMean_Std(opt.project_name)
     else:
         if opt.multispectral and not opt.get_mean_std:
-            mean=[0.158, 0.209, 0.189, 0.378, 0.509]
-            std=[0.085, 0.107, 0.089, 0.181, 0.246]
+            mean = [0.157, 0.208, 0.188, 0.377, 0.525]
+            std = [0.085, 0.107, 0.089, 0.181, 0.23]
         else:
             mean = [0.485, 0.456, 0.406]
             std = [0.229, 0.224, 0.225]
