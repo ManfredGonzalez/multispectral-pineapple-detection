@@ -17,8 +17,6 @@ from torchvision.ops.boxes import batched_nms, nms
 #from sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 from utils.sync_batchnorm import SynchronizedBatchNorm2d
 
-import rasterio
-
 
 def invert_affine(metas: Union[float, list, tuple], preds):
     for i in range(len(preds)):
