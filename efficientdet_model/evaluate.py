@@ -10,7 +10,6 @@ import argparse
 import torch
 import yaml
 import cv2
-import rasterio
 
 from tqdm import tqdm
 from pycocotools.coco import COCO
@@ -147,16 +146,6 @@ def get_predictions(imgs_path,
             rois[:, 2] -= rois[:, 0]
             rois[:, 3] -= rois[:, 1]
             
-            jpg_image = cv2.imread(jpg_image_path)
-            
-            if bands_to_apply:
-            
-                ori_imgs = []
-                bands = []
-                ms_image = rasterio.open(image_path)
-                for i in range(3):
-                    bands.append(ms_image.read(i+1).astype('uint8'))
-                ori_imgs.append(np.dstack(bands))
 
             # iterate over all bounding boxes
             for roi_id in range(rois.shape[0]):
@@ -180,9 +169,6 @@ def get_predictions(imgs_path,
                                 (xmin,ymin), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                                 (255, 255, 0), 1)'''
 
-            filename, file_extension = os.path.splitext(jpg_image_path)
-            new_img_path = f'{filename}_inferences{file_extension}'
-            cv2.imwrite(new_img_path,jpg_image)
 
 
     # write output
@@ -346,7 +332,7 @@ def run_metrics(compound_coef,
        
 
     if not use_only_vl:
-        bands_to_apply = [int(item) for item in bands_to_apply.split('_')]
+        bands_to_apply = [item for item in bands_to_apply.split(' ')]
         in_channels = len(bands_to_apply)
     else:
         bands_to_apply = None

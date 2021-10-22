@@ -124,7 +124,7 @@ def preprocess_ml(*image_path, max_size=512,bands_to_apply=None, band_extension=
             bands = []
             for band_name in bands_to_apply:
                 band_path = f'{img_path}_{band_name}.{band_extension}'
-                bands.append(cv2.imread(band_path),cv2.IMREAD_GRAYSCALE)
+                bands.append(cv2.imread(band_path,cv2.IMREAD_GRAYSCALE))
             ori_imgs.append(np.dstack(bands))
         new_mean = []
         new_std = []
