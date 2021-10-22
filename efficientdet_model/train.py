@@ -108,13 +108,13 @@ def train(opt, seed=None):
             opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
 
     else:
-        
+        bands_names = opt.bands_to_apply.replace(' ','_')
         if seed:
-            opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}_{opt.bands_to_apply}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}_{seed}_{opt.bands_to_apply}/tensorboard/'
+            opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}_{bands_names}/'
+            opt.log_path = opt.log_path + f'/{params.project_name}_{seed}_{bands_names}/tensorboard/'
         else: 
-            opt.saved_path = opt.saved_path + f'/{params.project_name}_{opt.bands_to_apply}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}_{opt.bands_to_apply}/tensorboard/'
+            opt.saved_path = opt.saved_path + f'/{params.project_name}_{bands_names}/'
+            opt.log_path = opt.log_path + f'/{params.project_name}_{bands_names}/tensorboard/'
 
     os.makedirs(opt.log_path, exist_ok=True)
     os.makedirs(opt.saved_path, exist_ok=True)
