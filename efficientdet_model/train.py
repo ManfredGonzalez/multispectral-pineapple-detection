@@ -97,27 +97,28 @@ def train(opt, seed=None):
         torch.backends.cudnn.deterministic = True
 
     # read paths to save weights
-    
+    saved_path = ''
+    log_path = ''
     if opt.use_only_vl:
         
         if seed:
-            opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}_{seed}/tensorboard/'
+            saved_path = opt.saved_path + f'/{params.project_name}_{seed}/'
+            log_path = opt.log_path + f'/{params.project_name}_{seed}/tensorboard/'
         else:
-            opt.saved_path = opt.saved_path + f'/{params.project_name}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
+            saved_path = opt.saved_path + f'/{params.project_name}/'
+            log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
 
     else:
         bands_names = opt.bands_to_apply.replace(' ','_')
         if seed:
-            opt.saved_path = opt.saved_path + f'/{params.project_name}_{seed}_{bands_names}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}_{seed}_{bands_names}/tensorboard/'
+            saved_path = opt.saved_path + f'/{params.project_name}_{seed}_{bands_names}/'
+            log_path = opt.log_path + f'/{params.project_name}_{seed}_{bands_names}/tensorboard/'
         else: 
-            opt.saved_path = opt.saved_path + f'/{params.project_name}_{bands_names}/'
-            opt.log_path = opt.log_path + f'/{params.project_name}_{bands_names}/tensorboard/'
+            saved_path = opt.saved_path + f'/{params.project_name}_{bands_names}/'
+            log_path = opt.log_path + f'/{params.project_name}_{bands_names}/tensorboard/'
 
-    os.makedirs(opt.log_path, exist_ok=True)
-    os.makedirs(opt.saved_path, exist_ok=True)
+    os.makedirs(log_path, exist_ok=True)
+    os.makedirs(saved_path, exist_ok=True)
 
     
     bands_to_apply = None
@@ -261,7 +262,7 @@ def train(opt, seed=None):
     num_iter_per_epoch = len(training_generator)
 
     # set the writer for the logs of tensorboard
-    writer = SummaryWriter(opt.log_path + f'/{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}/')
+    writer = SummaryWriter(log_path + f'/{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}/')
 
     # if something wrong happens, catch and save the last weights
     try:
@@ -324,7 +325,7 @@ def train(opt, seed=None):
 
                     # save the model
                     if step % opt.save_interval == 0 and step > 0:
-                        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_last.pth')
+                        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_last.pth',saved_path)
                         #save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_trained_weights.pth')
                         print('checkpoint...')
 
@@ -383,9 +384,9 @@ def train(opt, seed=None):
                     best_loss = loss
                     best_epoch = epoch
 
-                    save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_best.pth')
+                    save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_best.pth',saved_path)
                     #save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
-                    with open(os.path.join(opt.saved_path, f"best_epoch-d{opt.compound_coef}.txt"), "a") as my_file: 
+                    with open(os.path.join(saved_path, f"best_epoch-d{opt.compound_coef}.txt"), "a") as my_file: 
                         my_file.write(f"Epoch:{epoch} / Step: {step} / Loss: {best_loss}\n") 
 
                 # go back to training
@@ -397,12 +398,12 @@ def train(opt, seed=None):
                     break
 
     except KeyboardInterrupt:
-        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_last.pth')
+        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_last.pth',saved_path)
         writer.close()
     writer.close()
 
 
-def save_checkpoint(model, name):
+def save_checkpoint(model, name, saved_path):
     '''
     Save current weights of the model.
 
@@ -411,9 +412,9 @@ def save_checkpoint(model, name):
     :name (string) -> filename to save this model.
     '''
     if isinstance(model, CustomDataParallel):
-        torch.save(model.module.model.state_dict(), os.path.join(opt.saved_path, name))
+        torch.save(model.module.model.state_dict(), os.path.join(saved_path, name))
     else:
-        torch.save(model.model.state_dict(), os.path.join(opt.saved_path, name))
+        torch.save(model.model.state_dict(), os.path.join(saved_path, name))
 
 
 
