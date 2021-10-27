@@ -616,5 +616,8 @@ def run(**kwargs):
 
 
 if __name__ == "__main__":
+    #os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    cwd = os.getcwd()
     opt = parse_opt()
     main(opt)
+    #os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
