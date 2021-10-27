@@ -298,6 +298,6 @@ if __name__ == '__main__':
                                 opt.shuffle, opt.sub_sample, opt.seed, opt.img_extension,
                                 multispectral = opt.multispectral,annotations_file = None)
     
-    create_project_file(output_yml, f'{output_folder}{opt.set_1}/images', f'{output_folder}{opt.set_3}/images', class_list)
+    create_project_file(output_yml, f'{output_folder}{opt.set_1}/images', f'{output_folder}{opt.set_2}/images', class_list)
     
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
