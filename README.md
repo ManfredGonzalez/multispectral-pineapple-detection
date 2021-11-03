@@ -10,7 +10,7 @@ Requirements:
 
 ## Install requirements (Python version 3.8).
     pip install -U scikit-learn
-    pip install pycocotools numpy opencv-python tqdm tensorboard tensorboardX pyyaml webcolors
+    pip install pycocotools numpy opencv-contrib-python tqdm tensorboard tensorboardX pyyaml webcolors
     pip install torch==1.4.0
     pip install torchvision==0.5.0
     pip install rasterio
