@@ -175,8 +175,8 @@ def process(file_path,imReference):
     #band = ms_band.read(1)
     band = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
     vignettingData = [float(number) for number in meta_data['VignettingData'].split(',')]
-    #band = vignetting_corection(float(meta_data['CalibratedOpticalCenterX']),float(meta_data['CalibratedOpticalCenterY']),vignettingData,band)
-    #band = pixel_correction(float(meta_data['SensorGainAdjustment']), float(meta_data['SensorGain']), float(meta_data['Irradiance']),int(meta_data['ExposureTime']),band)
+    band = vignetting_corection(float(meta_data['CalibratedOpticalCenterX']),float(meta_data['CalibratedOpticalCenterY']),vignettingData,band)
+    band = pixel_correction(float(meta_data['SensorGainAdjustment']), float(meta_data['SensorGain']), float(meta_data['Irradiance']),int(meta_data['ExposureTime']),band)
     band = normalize(band,0,255).astype('uint8')
     x = float(meta_data['RelativeOpticalCenterX'])
     y = float(meta_data['RelativeOpticalCenterY'])
