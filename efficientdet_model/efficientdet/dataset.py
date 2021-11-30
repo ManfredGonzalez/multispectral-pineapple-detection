@@ -116,8 +116,10 @@ class CocoDataset(Dataset):
             boxes.append([xmin, ymin, xmax, ymax])
             labels.append(int(label))
         
-        
-        img = img.astype(np.float32) / 255.
+        if self.use_only_vl:
+            img = img.astype(np.float32) / 255.
+        else:
+            img = img.astype(np.float32) / 127. #Multispectral Bands are represented by a grayscale range, 0 - 127
 
         # locate the category at the end
         boxes = np.hstack(( np.array(boxes), np.vstack(labels) ))

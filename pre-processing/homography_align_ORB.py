@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import rasterio
-from rasterio import plot
 import matplotlib.pyplot as plt
 from math import sqrt
 import glob
