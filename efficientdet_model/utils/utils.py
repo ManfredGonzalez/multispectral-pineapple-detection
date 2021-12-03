@@ -141,12 +141,12 @@ def preprocess_ml(*image_path, max_size=512,bands_to_apply=None, band_extension=
 
         mean = new_mean
         std = new_std
+        normalized_imgs = [((img[..., ::-1] / 127) - mean) / std for img in ori_imgs]
     else:
         mean=(0.485, 0.456, 0.406) 
         std=(0.229, 0.224, 0.225)
         ori_imgs = [cv2.imread(img_path) for img_path in image_path]
-        
-    normalized_imgs = [(img[..., ::-1] / 255 - mean) / std for img in ori_imgs]
+        normalized_imgs = [((img[..., ::-1] / 255) - mean) / std for img in ori_imgs]
     
     imgs_meta = [aspectaware_resize_padding_ml(img, max_size, max_size,
                                             means=None,interpolation=cv2.INTER_LINEAR) for img in normalized_imgs]
