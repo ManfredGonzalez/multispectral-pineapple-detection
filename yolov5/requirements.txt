@@ -8,10 +8,14 @@ numpy
 opencv-contrib-python==4.5.4.58
 Pillow>=7.1.2
 #PyYAML>=5.3.1
-requests>=2.23.0
-scipy>=1.4.1
-torch>=1.7.0
-torchvision>=0.8.1
+#requests>=2.23.0
+requests
+#scipy>=1.4.1
+scipy
+#torch>=1.7.0
+torch
+#torchvision>=0.8.1
+torchvision
 #tqdm>=4.41.0
 tqdm
 
@@ -21,8 +25,10 @@ tensorboard
 # wandb
 
 # Plotting ------------------------------------
-pandas>=1.1.4
-seaborn>=0.11.0
+#pandas>=1.1.4
+pandas
+#seaborn>=0.11.0
+seaborn
 
 # Export --------------------------------------
 # coremltools>=4.1  # CoreML export
