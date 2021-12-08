@@ -49,6 +49,7 @@ from utils.loggers.wandb.wandb_utils import check_wandb_resume
 from utils.metrics import fitness
 from utils.loggers import Loggers
 from utils.callbacks import Callbacks
+from utils.utils import boolean_string
 
 LOGGER = logging.getLogger(__name__)
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
@@ -108,20 +109,26 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     is_coco = data.endswith('coco.yaml') and nc == 80  # COCO dataset
 
     # Model
+    if len(opt.bands_to_apply.strip())!=0:
+        bands_to_apply = [item for item in opt.bands_to_apply.split(' ')]
+        ch = len(bands_to_apply)
+    else:
+        bands_to_apply = None
+        ch = 3
     check_suffix(weights, '.pt')  # check weights
     pretrained = weights.endswith('.pt')
     if pretrained:
         with torch_distributed_zero_first(LOCAL_RANK):
             weights = attempt_download(weights)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
-        model = Model(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg or ckpt['model'].yaml, ch=ch, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         exclude = ['anchor'] if (cfg or hyp.get('anchors')) and not resume else []  # exclude keys
         csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
         csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
         model.load_state_dict(csd, strict=False)  # load
         LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
     else:
-        model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg, ch=ch, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
 
     # Freeze
     freeze = [f'model.{x}.' for x in range(freeze)]  # layers to freeze
@@ -207,10 +214,12 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         LOGGER.info('Using SyncBatchNorm()')
 
     # Trainloader
+    
+    
     train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
-                                              hyp=hyp, augment=True, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
+                                              hyp=hyp, augment=False, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
                                               workers=workers, image_weights=opt.image_weights, quad=opt.quad,
-                                              prefix=colorstr('train: '))
+                                              prefix=colorstr('train: '),bands_to_apply=bands_to_apply)
     mlc = int(np.concatenate(dataset.labels, 0)[:, 0].max())  # max label class
     nb = len(train_loader)  # number of batches
     assert mlc < nc, f'Label class {mlc} exceeds nc={nc} in {data}. Possible class labels are 0-{nc - 1}'
@@ -220,7 +229,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         val_loader = create_dataloader(val_path, imgsz, batch_size // WORLD_SIZE * 2, gs, single_cls,
                                        hyp=hyp, cache=None if noval else opt.cache, rect=True, rank=-1,
                                        workers=workers, pad=0.5,
-                                       prefix=colorstr('val: '))[0]
+                                       prefix=colorstr('val: '),bands_to_apply=bands_to_apply)[0]
 
         if not resume:
             labels = np.concatenate(dataset.labels, 0)
@@ -471,6 +480,9 @@ def parse_opt(known=False):
     parser.add_argument('--upload_dataset', action='store_true', help='W&B: Upload dataset as artifact table')
     parser.add_argument('--bbox_interval', type=int, default=-1, help='W&B: Set bounding-box image logging interval')
     parser.add_argument('--artifact_alias', type=str, default='latest', help='W&B: Version of dataset artifact to use')
+
+    # Multispectral arguments
+    parser.add_argument('--bands_to_apply', type=str, default="")#"Red Green Blue RedEdge NIR"
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt

@@ -33,7 +33,8 @@ from utils.torch_utils import torch_distributed_zero_first
 
 # Parameters
 HELP_URL = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
-IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
+#IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
+IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 VID_FORMATS = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']  # acceptable video suffixes
 NUM_THREADS = min(8, os.cpu_count())  # number of multiprocessing threads
 
@@ -93,7 +94,7 @@ def exif_transpose(image):
 
 
 def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False, cache=False, pad=0.0,
-                      rect=False, rank=-1, workers=8, image_weights=False, quad=False, prefix=''):
+                      rect=False, rank=-1, workers=8, image_weights=False, quad=False, prefix='', bands_to_apply=None):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
     with torch_distributed_zero_first(rank):
         dataset = LoadImagesAndLabels(path, imgsz, batch_size,
@@ -105,7 +106,7 @@ def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=Non
                                       stride=int(stride),
                                       pad=pad,
                                       image_weights=image_weights,
-                                      prefix=prefix)
+                                      prefix=prefix, bands_to_apply=bands_to_apply)
 
     batch_size = min(batch_size, len(dataset))
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, workers])  # number of workers
@@ -378,7 +379,7 @@ class LoadImagesAndLabels(Dataset):
     cache_version = 0.5  # dataset labels *.cache version
 
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
-                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix='',bands_to_apply=None):
         self.img_size = img_size
         self.augment = augment
         self.hyp = hyp
@@ -389,6 +390,7 @@ class LoadImagesAndLabels(Dataset):
         self.stride = stride
         self.path = path
         self.albumentations = Albumentations() if augment else None
+        self.bands_to_apply = bands_to_apply
 
         try:
             f = []  # image files
@@ -665,13 +667,23 @@ def load_image(self, i):
             im = np.load(npy)
         else:  # read image
             path = self.img_files[i]
-            im = cv2.imread(path)  # BGR
+            if self.bands_to_apply:
+                bands = []
+                root_dir = os.path.dirname(path)
+                imgName = Path(path).stem
+                for band_name in self.bands_to_apply:
+                    bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
+                im = np.dstack(bands)
+            else:
+                im = cv2.imread(path)  # BGR
             assert im is not None, 'Image Not Found ' + path
         h0, w0 = im.shape[:2]  # orig hw
         r = self.img_size / max(h0, w0)  # ratio
         if r != 1:  # if sizes are not equal
             im = cv2.resize(im, (int(w0 * r), int(h0 * r)),
-                            interpolation=cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR)
+                            #interpolation=cv2.INTER_LINEAR)
+                            interpolation=cv2.INTER_AREA if r < 1 and not self.augment and not self.bands_to_apply else cv2.INTER_LINEAR)
+                            #
         return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
     else:
         return self.imgs[i], self.img_hw0[i], self.img_hw[i]  # im, hw_original, hw_resized
