@@ -81,6 +81,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
+        bands_to_apply = None
         ):
     
     dataset_path = str(dataset_path)
@@ -114,9 +115,16 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
+    if len(bands_to_apply.strip())!=0:
+        bands_to_apply = [item for item in bands_to_apply.split(' ')]
+        #model.yaml['ch'] = len(bands_to_apply)
+    else:
+        bands_to_apply = None
+        #model.yaml['ch'] = 3
+
     # Dataloader
     
-    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
+    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, bands_to_apply = bands_to_apply)
     bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
 
@@ -245,6 +253,8 @@ def parse_opt():
     parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+    # Multispectral arguments
+    parser.add_argument('--bands_to_apply', type=str, default="")#"Red Green Blue RedEdge NIR"
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(FILE.stem, opt)
