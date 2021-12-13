@@ -88,10 +88,13 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     source = os.path.join(dataset_path,'images')
     source_gt = os.path.join(dataset_path,'labels')
 
-    save_img = not nosave and not source.endswith('.txt')  # save inference images
-    webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
-        ('rtsp://', 'rtmp://', 'http://', 'https://'))
-
+    if len(bands_to_apply.strip())!=0:
+        bands_to_apply = [item for item in bands_to_apply.split(' ')]
+        #model.yaml['ch'] = len(bands_to_apply)
+    else:
+        bands_to_apply = None
+        #model.yaml['ch'] = 3
+    
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
@@ -115,12 +118,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-    if len(bands_to_apply.strip())!=0:
-        bands_to_apply = [item for item in bands_to_apply.split(' ')]
-        #model.yaml['ch'] = len(bands_to_apply)
-    else:
-        bands_to_apply = None
-        #model.yaml['ch'] = 3
 
     # Dataloader
     
@@ -167,9 +164,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dt[0] += t2 - t1
 
         # Inference
-        if pt:
-            visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
-            pred = model(img, augment=augment, visualize=visualize)[0]
+        visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+        pred = model(img, augment=augment, visualize=visualize)[0]
         
         t3 = time_sync()
         dt[1] += t3 - t2
@@ -236,7 +232,7 @@ def parse_opt():
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
-    parser.add_argument('--save-txt', type=boolean_string, default=True)
+    parser.add_argument('--save-txt', type=boolean_string, default=False)
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
