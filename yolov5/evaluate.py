@@ -9,12 +9,14 @@ Usage:
 import argparse
 import os
 import sys
+import csv
 from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+from tqdm import tqdm
 
 sys.path.append("yolov5/metrics/")
 from metrics.mean_avg_precision import mean_average_precision
@@ -60,11 +62,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dataset_path=ROOT / 'data/',  # file/dir/to/dataset
         imgsz=640,  # inference size (pixels)
         conf_thres=0.25,  # confidence threshold
-        iou_thres=0.45,  # NMS IOU threshold
+        iou_thres=0.4,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         view_img=False,  # show results
-        save_txt=True,  # save results to *.txt
+        save_txt=False,  # save results to *.txt
         save_conf=False,  # save confidences in --save-txt labels
         save_crop=False,  # save cropped prediction boxes
         nosave=False,  # do not save images/videos
@@ -81,7 +83,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        bands_to_apply = None
+        bands_to_apply = None,
+        csv_file_name = 'results'
         ):
     
     dataset_path = str(dataset_path)
@@ -96,11 +99,21 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         #model.yaml['ch'] = 3
     
     # Directories
-    save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
-    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    #save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
+    save_dir = Path('yolov5/results')
+    #(save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+
+    
+    cvs_path = f'{save_dir.resolve()}/{csv_file_name}.csv'
+    if not save_dir.exists():
+        save_dir.mkdir(parents=True, exist_ok=True)
+    if not Path(cvs_path).exists():
+        with open(cvs_path, "a") as myfile:
+            my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
+            my_writer.writerow(["bands_used", "groundtruth_num", "num_detections", "nms_threshold", "confidence_threshold", "precision", "recall", "f1_score","weights_path"])
 
     # Initialize
-    set_logging()
+    #set_logging()
     device = select_device(device)
     half &= device.type != 'cpu'  # half precision only supported on CUDA
 
@@ -132,7 +145,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
     ground_truth_list = []
     detections_list = []
-    for idx,(path, img, im0s, vid_cap) in enumerate(dataset):
+    for idx,(path, img, im0s, vid_cap) in tqdm(enumerate(dataset)):
         ## collect the groundtruth
         image_name = Path(path).stem
         gt_path = Path(os.path.join(source_gt,f'{image_name}.txt'))
@@ -164,7 +177,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dt[0] += t2 - t1
 
         # Inference
-        visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+        #visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
         pred = model(img, augment=augment, visualize=visualize)[0]
         
         t3 = time_sync()
@@ -186,12 +199,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             s += '%gx%g ' % img.shape[2:]  # print string
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-            imc = im0.copy() if save_crop else im0  # for save_crop
-            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -219,7 +227,13 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     print("Precision:" + str(p))
     print("Recall:" + str(r))
     print("F1 Score:" + str(f1_result))
-    print("===============================================================")  
+    print("===============================================================")
+    with open(cvs_path, "a") as myfile:
+        my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
+        if bands_to_apply:
+            my_writer.writerow([bands_to_apply, len(ground_truth_list), len(detections_list), iou_thres, conf_thres, p, r, f1_result,weights])
+        else:
+            my_writer.writerow(["Visible light", len(ground_truth_list), len(detections_list), iou_thres, conf_thres, p, r, f1_result,weights])
 
 
 def parse_opt():
@@ -251,6 +265,8 @@ def parse_opt():
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     # Multispectral arguments
     parser.add_argument('--bands_to_apply', type=str, default="")#"Red Green Blue RedEdge NIR"
+    # CSV file name to register results csv_file_name
+    parser.add_argument('--csv_file_name', default='results_yolov5',type=str, help='csv file name to stores results')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(FILE.stem, opt)
