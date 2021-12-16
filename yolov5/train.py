@@ -60,12 +60,23 @@ WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 def train(hyp,  # path/to/hyp.yaml or hyp dictionary
           opt,
           device,
-          callbacks
+          callbacks,
+          seed = None
           ):
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
+    if seed:
+        #get seed or seeds (for the one or various experiments)
 
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
     # Directories
     w = save_dir / 'weights'  # weights dir
     (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
@@ -115,6 +126,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     else:
         bands_to_apply = None
         ch = 3
+
     check_suffix(weights, '.pt')  # check weights
     pretrained = weights.endswith('.pt')
     if pretrained:
@@ -484,11 +496,14 @@ def parse_opt(known=False):
     # Multispectral arguments
     parser.add_argument('--bands_to_apply', type=str, default="")#"Red Green Blue RedEdge NIR"
 
+    # Seeds for bugs benchmarking
+    parser.add_argument('--seed_values', type=str, default="")
+
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
 
-def main(opt, callbacks=Callbacks()):
+def main(opt, seed=None, callbacks=Callbacks()):
     # Checks
     set_logging(RANK)
     if RANK in [-1, 0]:
@@ -513,8 +528,12 @@ def main(opt, callbacks=Callbacks()):
             opt.exist_ok, opt.resume = opt.resume, False  # pass resume to exist_ok and disable resume
         if len(opt.bands_to_apply.strip())!=0:
             name = opt.bands_to_apply.replace(' ','_')
+            if seed:
+                name = f'{name}_{seed}_seed'
             opt.save_dir = str(increment_path(Path(opt.project) / name, exist_ok=opt.exist_ok))
         else:
+            if seed:
+                 opt.name = f'{opt.name}_{seed}_seed'
             opt.save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
 
     # DDP mode
@@ -530,7 +549,8 @@ def main(opt, callbacks=Callbacks()):
 
     # Train
     if not opt.evolve:
-        train(opt.hyp, opt, device, callbacks)
+        
+        train(opt.hyp, opt, device, callbacks, seed = seed)
         if WORLD_SIZE > 1 and RANK == 0:
             LOGGER.info('Destroying process group... ')
             dist.destroy_process_group()
@@ -611,7 +631,7 @@ def main(opt, callbacks=Callbacks()):
                 hyp[k] = round(hyp[k], 5)  # significant digits
 
             # Train mutation
-            results = train(hyp.copy(), opt, device, callbacks)
+            results = train(hyp.copy(), opt, device, callbacks,seed = seed)
 
             # Write mutation results
             print_mutation(results, hyp.copy(), save_dir, opt.bucket)
@@ -628,12 +648,20 @@ def run(**kwargs):
     opt = parse_opt(True)
     for k, v in kwargs.items():
         setattr(opt, k, v)
-    main(opt)
+    if len(opt.seed_values.strip())!=0:
+        for item in opt.seed_values.split(' '):
+            main(opt, seed=int(item))
+    else:
+        main(opt)
 
 
 if __name__ == "__main__":
     #os.chdir(os.path.dirname(os.path.abspath(__file__)))
     cwd = os.getcwd()
     opt = parse_opt()
-    main(opt)
+    if len(opt.seed_values.strip())!=0:
+        for item in opt.seed_values.split(' '):
+            main(opt, seed=int(item))
+    else:
+        main(opt)
     #os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
