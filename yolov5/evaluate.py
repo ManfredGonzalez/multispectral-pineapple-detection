@@ -167,8 +167,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 ground_truth_list.append([idx,int(label[0])+1,1,x_top_left,y_top_left,x_bottom_right,y_bottom_right])
 
         t1 = time_sync()
-        
-        img = torch.from_numpy(img).to(device)
+        if img.shape[0]==1:
+            img = np.squeeze(img, axis=0)
+            img = torch.unsqueeze(torch.from_numpy(img), axis=0).to(device)
+        else:
+            img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img = img / 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
