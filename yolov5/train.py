@@ -549,7 +549,7 @@ def main(opt, seed=None, callbacks=Callbacks()):
     # Train
     if not opt.evolve:
         
-        train(opt.hyp, opt, device, callbacks, seed = seed)
+        train(opt.hyp, opt, device, callbacks)
         if WORLD_SIZE > 1 and RANK == 0:
             LOGGER.info('Destroying process group... ')
             dist.destroy_process_group()
@@ -630,7 +630,7 @@ def main(opt, seed=None, callbacks=Callbacks()):
                 hyp[k] = round(hyp[k], 5)  # significant digits
 
             # Train mutation
-            results = train(hyp.copy(), opt, device, callbacks,seed = seed)
+            results = train(hyp.copy(), opt, device, callbacks)
 
             # Write mutation results
             print_mutation(results, hyp.copy(), save_dir, opt.bucket)
