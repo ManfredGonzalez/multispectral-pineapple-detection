@@ -12,6 +12,8 @@ import sys
 import csv
 from pathlib import Path
 
+import random
+
 import cv2
 import numpy as np
 import torch
@@ -84,7 +86,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         bands_to_apply = None,
-        csv_file_name = 'results'
+        csv_file_name = 'results',
+        seed = None
         ):
     
     dataset_path = str(dataset_path)
@@ -97,7 +100,15 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     else:
         bands_to_apply = None
         #model.yaml['ch'] = 3
-    
+    if seed:
+        if torch.cuda.is_available():
+                torch.cuda.manual_seed(seed)
+
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
     # Directories
     #save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     save_dir = Path('yolov5/results')
@@ -273,6 +284,8 @@ def parse_opt():
     parser.add_argument('--bands_to_apply', type=str, default="")#"Red Green Blue RedEdge NIR"
     # CSV file name to register results csv_file_name
     parser.add_argument('--csv_file_name', default='results_yolov5',type=str, help='csv file name to stores results')
+    # Evaluating using seed
+    parser.add_argument('--seed', default=None, type=int)
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(FILE.stem, opt)
