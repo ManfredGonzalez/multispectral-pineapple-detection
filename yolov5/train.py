@@ -122,7 +122,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     # Model
     if len(opt.bands_to_apply.strip())!=0:
         bands_to_apply = [item for item in opt.bands_to_apply.split(' ')]
-        if 'RGB' or 'RGB'.lower() in opt.bands_to_apply:
+        if 'RGB' in opt.bands_to_apply:
             ch = 3+(len(bands_to_apply)-1)
         else:
             ch = len(bands_to_apply)
