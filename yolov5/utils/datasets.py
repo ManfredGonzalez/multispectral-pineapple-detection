@@ -685,7 +685,11 @@ def load_image(self, i):
                 root_dir = os.path.dirname(path)
                 imgName = Path(path).stem
                 for band_name in self.bands_to_apply:
-                    bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
+                    if band_name == 'RGB' or band_name == 'RGB'.lower():
+                        im_rgb = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+                        bands.append(im_rgb)
+                    else:
+                        bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
                 im = np.dstack(bands)
             else:
                 im = cv2.imread(path)  # BGR

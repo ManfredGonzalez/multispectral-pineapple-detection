@@ -139,3 +139,5 @@ dmypy.json
 /projects
 /efficientdet_model/datasets
 /efficientdet_model/logs
+/efficientdet_model/projects
+/efficientdet_model/results

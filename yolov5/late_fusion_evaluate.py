@@ -60,7 +60,7 @@ def eval_fh(pineapples_detected,
     return p,r,ap
 
 @torch.no_grad()
-def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
+def run(weights=ROOT / 'yolov5s.pt',  # "path/to/Red/model/weights.pt path/to/Green/model/weights.pt path/to/Blue/model/weights.pt path/to/RedEdge/model/weights.pt path/to/NIR/model/weights.pt"
         dataset_path=ROOT / 'data/',  # file/dir/to/dataset
         imgsz=640,  # inference size (pixels)
         conf_thres=0.25,  # confidence threshold
@@ -85,7 +85,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        bands_to_apply = None,
+        bands_to_apply = None,  #Red Green Blue RedEdge NIR 
         csv_file_name = 'results'
         ):
     
@@ -94,7 +94,18 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     source_gt = os.path.join(dataset_path,'labels')
 
     if len(bands_to_apply.strip())!=0:
-        bands_to_apply = [item for item in bands_to_apply.split(' ')]
+        bands_to_apply = bands_to_apply.split(' ')
+        new_bands = []
+        for band in bands_to_apply:
+            if '_' in band:
+                band = band.split('_')
+                new_bands.append(band)
+            elif band.lower() == 'rgb':
+                new_bands.append(None)
+            else:
+                new_bands.append([band])
+        bands_to_apply = new_bands
+
         #model.yaml['ch'] = len(bands_to_apply)
     else:
         bands_to_apply = None
@@ -108,90 +119,114 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     cvs_path = f'{save_dir.resolve()}/{csv_file_name}.csv'
     if not save_dir.exists():
         save_dir.mkdir(parents=True, exist_ok=True)
-    if not Path(cvs_path).exists():
+    '''if not Path(cvs_path).exists():
         with open(cvs_path, "a") as myfile:
             my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
-            my_writer.writerow(["bands_used", "groundtruth_num", "num_detections", "nms_threshold", "confidence_threshold", "precision", "recall", "f1_score","weights_path"])
+            my_writer.writerow(["bands_used", "groundtruth_num", "num_detections", "nms_threshold", "confidence_threshold", "precision", "recall", "f1_score","weights_path"])'''
 
     # Initialize
     #set_logging()
     device = select_device(device)
     half &= device.type != 'cpu'  # half precision only supported on CUDA
 
-    # Load model
-    w = str(weights[0] if isinstance(weights, list) else weights)
-    classify, suffix, suffixes = False, Path(w).suffix.lower(), ['.pt', '.onnx', '.tflite', '.pb', '']
-    check_suffix(w, suffixes)  # check weights have acceptable suffix
-    pt, onnx, tflite, pb, saved_model = (suffix == x for x in suffixes)  # backend booleans
+    # Load models
+    #models_weights
+    if len(weights[0].strip())!=0:
+        models_weights = [item for item in weights[0].split(' ')]
+        #model.yaml['ch'] = len(bands_to_apply)
+    else:
+        raise Exception('The weights of the models are required')
     stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
-    
-    model = torch.jit.load(w) if 'torchscript' in w else attempt_load(weights, map_location=device)
-    stride = int(model.stride.max())  # model stride
-    names = model.module.names if hasattr(model, 'module') else model.names  # get class names
-    
-    
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
-
-
-    # Dataloader
-    
-    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, bands_to_apply = bands_to_apply)
-    bs = 1  # batch_size
-    vid_path, vid_writer = [None] * bs, [None] * bs
-
-    # Run inference
-    if pt and device.type != 'cpu':
-        if bands_to_apply:
-            model(torch.zeros(1, len(bands_to_apply), *imgsz).to(device).type_as(next(model.parameters())))  # run once
-        else:
-            model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))  # run once
-    dt, seen = [0.0, 0.0, 0.0], 0
-
-    ground_truth_list = []
+    inferences = {}
     detections_list = []
-    for idx,(path, img, im0s, vid_cap) in tqdm(enumerate(dataset)):
-        ## collect the groundtruth
-        image_name = Path(path).stem
-        gt_path = Path(os.path.join(source_gt,f'{image_name}.txt'))
-        if not gt_path.is_file():
-            raise Exception(f'Image {image_name} has not have the required ground truth file')
-        gt_list = open(gt_path, "r").read().split('\n')
+    ground_truth_dict = {}
+    ground_truth_list = []
+    for j in range(len(models_weights)):
+        print(f'Processing model: {models_weights[j]}')
+        print(f'Using bands: {bands_to_apply[j]}')
+        model = attempt_load(models_weights[j], map_location=device)
+    
+        stride = int(model.stride.max())  # model stride
+        names = model.module.names if hasattr(model, 'module') else model.names  # get class names
+    
+    
+        imgsz = check_img_size(imgsz, s=stride)  # check image size
+
+        pt = True
+        # Dataloader
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, bands_to_apply = bands_to_apply[j])
+        bs = 1  # batch_size
+        vid_path, vid_writer = [None] * bs, [None] * bs
+
+        # Run inference
+        if pt and device.type != 'cpu':
+            if bands_to_apply:
+                model(torch.zeros(1, len(bands_to_apply), *imgsz).to(device).type_as(next(model.parameters())))  # run once
+            else:
+                model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))  # run once
+        dt, seen = [0.0, 0.0, 0.0], 0
+
         
-        for i in range(len(gt_list)):
-            label = gt_list[i].split(' ')
-            if len(label)==5:
-                xcenter = float(label[1]) * im0s.shape[1]
-                ycenter = float(label[2]) * im0s.shape[0]
-                bbox_width = float(label[3]) * im0s.shape[1]
-                bbox_height = float(label[4]) * im0s.shape[0]
-                x_top_left = int(abs(xcenter-(bbox_width/2)))
-                y_top_left  = int(abs(ycenter - (bbox_height/2)))
-                x_bottom_right = int(x_top_left + bbox_width)
-                y_bottom_right = int(y_top_left + bbox_height)
-                ground_truth_list.append([idx,int(label[0])+1,1,x_top_left,y_top_left,x_bottom_right,y_bottom_right])
+        for (path, img, im0s, vid_cap) in tqdm(dataset):
+            ## collect the groundtruth
+            image_name = Path(path).stem
+            if len(ground_truth_dict) < len(dataset.files):
+                gt_path = Path(os.path.join(source_gt,f'{image_name}.txt'))
+                if not gt_path.is_file():
+                    raise Exception(f'Image {image_name} has not have the required ground truth file')
+                gt_list = open(gt_path, "r").read().split('\n')
+                img_gt = []
+                for i in range(len(gt_list)):
+                    label = gt_list[i].split(' ')
+                    if len(label)==5:
+                        xcenter = float(label[1]) * im0s.shape[1]
+                        ycenter = float(label[2]) * im0s.shape[0]
+                        bbox_width = float(label[3]) * im0s.shape[1]
+                        bbox_height = float(label[4]) * im0s.shape[0]
+                        x_top_left = int(abs(xcenter-(bbox_width/2)))
+                        y_top_left  = int(abs(ycenter - (bbox_height/2)))
+                        x_bottom_right = int(x_top_left + bbox_width)
+                        y_bottom_right = int(y_top_left + bbox_height)
+                        
+                        #ground_truth_list.append([idx,int(label[0])+1,1,x_top_left,y_top_left,x_bottom_right,y_bottom_right])
+                        img_gt.append((int(label[0])+1,1,x_top_left,y_top_left,x_bottom_right,y_bottom_right))
+                ground_truth_dict.update({image_name:img_gt})
 
-        t1 = time_sync()
-        if img.shape[0]==1:
-            img = np.squeeze(img, axis=0)
-            img = torch.unsqueeze(torch.from_numpy(img), axis=0).to(device)
-        else:
-            img = torch.from_numpy(img).to(device)
-        img = img.half() if half else img.float()  # uint8 to fp16/32
-        img = img / 255.0  # 0 - 255 to 0.0 - 1.0
-        if len(img.shape) == 3:
-            img = img[None]  # expand for batch dim
-        t2 = time_sync()
-        dt[0] += t2 - t1
+            t1 = time_sync()
+            if img.shape[0]==1:
+                img = np.squeeze(img, axis=0)
+                img = torch.unsqueeze(torch.from_numpy(img), axis=0).to(device)
+            else:
+                img = torch.from_numpy(img).to(device)
+            img = img.half() if half else img.float()  # uint8 to fp16/32
+            img = img / 255.0  # 0 - 255 to 0.0 - 1.0
+            if len(img.shape) == 3:
+                img = img[None]  # expand for batch dim
+            t2 = time_sync()
+            dt[0] += t2 - t1
 
-        # Inference
-        #visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
-        pred = model(img, augment=augment, visualize=visualize)[0]
+            # Inference
+            #visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+            pred = model(img, augment=augment, visualize=visualize)[0]
+            
+            t3 = time_sync()
+            dt[1] += t3 - t2
+            #################################################################
+            if image_name not in inferences:
+                inferences.update({image_name:[]})
+            inferences[image_name].append(pred)
+    #####################################################################################
+    '''We need to preprocess the inferences dictionary to apply nms to every image with the 3 band inferences'''
+    #####################################################################################
+    # NMS
+    for idx,img_name in enumerate(inferences):
+        inferences[img_name] = torch.cat(inferences[img_name], dim=1)
+        inferences[img_name] = non_max_suppression(inferences[img_name], conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+        pred = inferences[img_name]
+        for (gt_class,gt_conf,gt_x_top_left,gt_y_top_left,gt_x_bottom_right,gt_y_bottom_right) in ground_truth_dict[img_name]:
+            ground_truth_list.append([idx,gt_class,gt_conf,gt_x_top_left,gt_y_top_left,gt_x_bottom_right,gt_y_bottom_right])
+    #for idx in range(len(pred)):
         
-        t3 = time_sync()
-        dt[1] += t3 - t2
-
-        # NMS
-        pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
 
         
@@ -222,7 +257,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     x_top_left,y_top_left,x_bottom_right,y_bottom_right = int(xyxy[0]),int(xyxy[1]),int(xyxy[2]),int(xyxy[3])
                     detections_list.append([idx,int(cls.item())+1,float(conf.item()),x_top_left,y_top_left,x_bottom_right,y_bottom_right])
     
-    p,r,ap = eval_fh(detections_list, ground_truth_list, iou_thres, 1)
+    p,r,ap = eval_fh(detections_list, ground_truth_list, 0.4, 1)
 
     print('call to metrics our implementation')
     if p==0 and r==0:
@@ -245,7 +280,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path(s)')#"path/to/Red/model/weights.pt path/to/Green/model/weights.pt path/to/Blue/model/weights.pt path/to/RedEdge/model/weights.pt path/to/NIR/model/weights.pt"
     parser.add_argument('--dataset_path', type=str, default=ROOT / 'data/', help='file/dir/to/dataset, 0 for webcam')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='confidence threshold')

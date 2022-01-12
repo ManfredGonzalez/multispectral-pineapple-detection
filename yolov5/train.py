@@ -65,7 +65,6 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
           ):
     if seed:
         #get seed or seeds (for the one or various experiments)
-        os.environ['PYTHONHASHSEED'] = str(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -109,7 +108,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     # Config
     plots = not evolve  # create plots
     cuda = device.type != 'cpu'
-    #init_seeds(1 + RANK)
+    if not seed:
+        init_seeds(1 + RANK)
     
     with torch_distributed_zero_first(LOCAL_RANK):
         data_dict = data_dict or check_dataset(data)  # check if None
@@ -122,7 +122,10 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     # Model
     if len(opt.bands_to_apply.strip())!=0:
         bands_to_apply = [item for item in opt.bands_to_apply.split(' ')]
-        ch = len(bands_to_apply)
+        if 'RGB' or 'RGB'.lower() in opt.bands_to_apply:
+            ch = 3+(len(bands_to_apply)-1)
+        else:
+            ch = len(bands_to_apply)
     else:
         bands_to_apply = None
         ch = 3
