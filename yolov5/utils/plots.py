@@ -156,12 +156,12 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         targets = targets.cpu().numpy()
     if np.max(images[0]) <= 1:
         images *= 255.0  # de-normalise (optional)
-    bs, _, h, w = images.shape  # batch size, _, height, width
+    bs, ch, h, w = images.shape  # batch size, _, height, width
     bs = min(bs, max_subplots)  # limit plot images
     ns = np.ceil(bs ** 0.5)  # number of subplots (square)
 
     # Build Image
-    mosaic = np.full((int(ns * h), int(ns * w), 3), 255, dtype=np.uint8)  # init
+    mosaic = np.full((int(ns * h), int(ns * w), ch), 255, dtype=np.uint8)  # init
     for i, im in enumerate(images):
         if i == max_subplots:  # if last batch has fewer images than we expect
             break

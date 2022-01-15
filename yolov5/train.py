@@ -106,7 +106,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             callbacks.register_action(k, callback=getattr(loggers, k))
 
     # Config
-    plots = not evolve  # create plots
+    #plots = not evolve  # create plots
+    plots = False
     cuda = device.type != 'cpu'
     if not seed:
         init_seeds(1 + RANK)
@@ -511,8 +512,8 @@ def main(opt, seed=None, callbacks=Callbacks()):
     set_logging(RANK)
     if RANK in [-1, 0]:
         print_args(FILE.stem, opt)
-        check_git_status()
-        check_requirements(exclude=['thop'])
+        #check_git_status()
+        #check_requirements(exclude=['thop'])
 
     # Resume
     if opt.resume and not check_wandb_resume(opt) and not opt.evolve:  # resume an interrupted run
