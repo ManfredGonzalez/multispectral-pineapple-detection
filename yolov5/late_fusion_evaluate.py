@@ -143,7 +143,10 @@ def run(weights=ROOT / 'yolov5s.pt',  # "path/to/Red/model/weights.pt path/to/Gr
     ground_truth_list = []
     for j in range(len(models_weights)):
         print(f'Processing model: {models_weights[j]}')
-        print(f'Using bands: {bands_to_apply[j]}')
+        if bands_to_apply[j] == None:
+            print(f'Using bands: RGB')
+        else:
+            print(f'Using bands: {bands_to_apply[j]}')
         model = attempt_load(models_weights[j], map_location=device)
     
         stride = int(model.stride.max())  # model stride
@@ -270,10 +273,16 @@ def run(weights=ROOT / 'yolov5s.pt',  # "path/to/Red/model/weights.pt path/to/Gr
     print("Recall:" + str(r))
     print("F1 Score:" + str(f1_result))
     print("===============================================================")
+    bands_csv = []
+    for index in range(len(bands_to_apply)):
+        if bands_to_apply[index] == None:
+            bands_csv.append('RGB')
+        else:
+            bands_csv.append(bands_to_apply[index])
     with open(cvs_path, "a") as myfile:
         my_writer = csv.writer(myfile, delimiter=',', quotechar='"')
         if bands_to_apply:
-            my_writer.writerow([bands_to_apply, len(ground_truth_list), len(detections_list), iou_thres, conf_thres, p, r, f1_result,weights])
+            my_writer.writerow([bands_csv, len(ground_truth_list), len(detections_list), iou_thres, conf_thres, p, r, f1_result,weights])
         else:
             my_writer.writerow(["Visible light", len(ground_truth_list), len(detections_list), iou_thres, conf_thres, p, r, f1_result,weights])
 

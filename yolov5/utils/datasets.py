@@ -30,6 +30,7 @@ from utils.augmentations import Albumentations, augment_hsv, copy_paste, letterb
 from utils.general import check_dataset, check_requirements, check_yaml, clean_str, segments2boxes, \
     xywh2xyxy, xywhn2xyxy, xyxy2xywhn, xyn2xy
 from utils.torch_utils import torch_distributed_zero_first
+from utils.utils import is_vegetation_index, get_band_combination
 
 # Parameters
 HELP_URL = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
@@ -42,8 +43,7 @@ NUM_THREADS = min(8, os.cpu_count())  # number of multiprocessing threads
 for orientation in ExifTags.TAGS.keys():
     if ExifTags.TAGS[orientation] == 'Orientation':
         break
-
-
+   
 def get_hash(paths):
     # Returns a single hash value of a list of paths (files or dirs)
     size = sum(os.path.getsize(p) for p in paths if os.path.exists(p))  # sizes
@@ -237,8 +237,10 @@ class LoadImages:
         img = letterbox(img0, self.img_size, stride=self.stride, auto=self.auto)[0]
 
         # Convert
-        #if not self.bands_to_apply:
-        img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        if not self.bands_to_apply:
+            img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW and BGR to RGB
+        else:
+            img = img.transpose((2, 0, 1)) # HWC to CHW  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
         return path, img, img0, self.cap
@@ -675,6 +677,7 @@ class LoadImagesAndLabels(Dataset):
 
 
 # Ancillary functions --------------------------------------------------------------------------------------------------
+
 def load_image(self, i):
     # loads 1 image from dataset index 'i', returns im, original hw, resized hw
     im = self.imgs[i]
@@ -688,10 +691,18 @@ def load_image(self, i):
                 bands = []
                 root_dir = os.path.dirname(path)
                 imgName = Path(path).stem
+                
                 for band_name in self.bands_to_apply:
                     if band_name == 'RGB' or band_name == 'RGB'.lower():
                         im_rgb = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
                         bands.append(im_rgb)
+                    elif is_vegetation_index(band_name):
+                        ms_image = []
+                        for band in ['Red', 'Green', 'Blue', 'RedEdge', 'NIR']:
+                            ms_image.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band}.TIF'),cv2.IMREAD_GRAYSCALE))
+                        ms_image = np.dstack(ms_image)
+                        im_vi = get_band_combination(ms_image,band_name) * 255 ###########################
+                        bands.append(im_vi)
                     else:
                         bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
                 im = np.dstack(bands)
