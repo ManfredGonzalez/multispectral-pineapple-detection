@@ -225,6 +225,13 @@ class LoadImages:
                     if band_name == 'RGB' or band_name == 'RGB'.lower():
                         im_rgb = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
                         bands.append(im_rgb)
+                    elif is_vegetation_index(band_name):
+                        ms_image = []
+                        for band in ['Red', 'Green', 'Blue', 'RedEdge', 'NIR']:
+                            ms_image.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band}.TIF'),cv2.IMREAD_GRAYSCALE))
+                        ms_image = np.dstack(ms_image)
+                        im_vi = get_band_combination(ms_image,band_name) * 255 ###########################
+                        bands.append(im_vi)
                     else:
                         bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
                 img0 = np.dstack(bands)
