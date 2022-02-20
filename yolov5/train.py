@@ -105,7 +105,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             callbacks.register_action(k, callback=getattr(loggers, k))
 
     # Config
-    plots = not evolve  # create plots
+    plots = False  # create plots
     #plots = False
     cuda = device.type != 'cpu'
     if not seed:

@@ -230,7 +230,7 @@ class LoadImages:
                         for band in ['Red', 'Green', 'Blue', 'RedEdge', 'NIR']:
                             ms_image.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band}.TIF'),cv2.IMREAD_GRAYSCALE))
                         ms_image = np.dstack(ms_image)
-                        im_vi = get_band_combination(ms_image,band_name) * 255 ###########################
+                        im_vi = get_band_combination(ms_image,band_name)
                         bands.append(im_vi)
                     else:
                         bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))
@@ -708,7 +708,7 @@ def load_image(self, i):
                         for band in ['Red', 'Green', 'Blue', 'RedEdge', 'NIR']:
                             ms_image.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band}.TIF'),cv2.IMREAD_GRAYSCALE))
                         ms_image = np.dstack(ms_image)
-                        im_vi = get_band_combination(ms_image,band_name) * 255 ###########################
+                        im_vi = get_band_combination(ms_image,band_name)
                         bands.append(im_vi)
                     else:
                         bands.append(cv2.imread(os.path.join(root_dir, f'{imgName}_{band_name}.TIF'),cv2.IMREAD_GRAYSCALE))

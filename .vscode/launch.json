@@ -10,22 +10,96 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "env": { "CUDA_VISIBLE_DEVICES": "0"}, 
+            /*"env": { "CUDA_VISIBLE_DEVICES": "0"}, */
             
-            /*"args": ["--dir_path", "/home/manfred/workspace/multispectral-pineapple-detection/datasets/gira_10_13_mar21/to_change/5_meters",
-                    "--results_dir_path", "/home/manfred/workspace/multispectral-pineapple-detection/datasets/gira_10_13_mar21/aligned/",
-                    "--start_numbering", "1"]*/
-            /*"args": ["--input_path", "/home/manfred/workspace/multispectral-pineapple-detection/datasets/gira_10_13_mar21_5m/",
-                        "--seed", "11",
-                        "--project_name", "5m_pineapple_11",
-                        "--img_extension", "JPG"]*/
-            "args": ["-c", "4",
-                            "-p", "5m_pineapple_10",
-                            "--lr", "1e-4",
+            /*"args": ["--dir_path", "/mnt/e/datosmanfred/Gira 10 13 Mar21/Lote 71/5_meters",
+                    "--results_dir_path", "/mnt/e/datosmanfred/gira_10_13_mar21_5m_ECC_2",
+                    "--start_numbering", "1",
+                    "--with_yv3_annot", "True",
+                    "--save_tif", "True",
+                    "--feature_extractor", "ECC",
+                    "--matcher", "DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING"]*/
+            /*"args": ["--input_path", "/mnt/e/datosmanfred/mosaicos/L301_B21_y_3_20m/L301_B21_y_3_20m_cropped/",
+                        "--seed", "10",
+                        "--project_name", "L301_B21_y_3_20m_10_ml",
+                        "--img_extension", "JPG",
+                        "--get_mean_std", "True"]*/
+            /*"args": ["-c", "0",
+                            "-p", "L301_B21_y_3_20m_10_ml",
+                            "--lr", "1e-3",
                             "--batch_size", "4",
-                            "--load_weights", "weights/efficientdet-d4.pth",
+                            "--load_weights", "weights/efficientdet-d0.pth",
                             "--use_only_vl", "False",
-                            "--bands_to_apply", "1 2 3"]
-        }
+                            "--num_epochs", "1000",
+                            "--es_patience", "10",
+                            "--bands_to_apply", "Red Blue",
+                            "--input_sizes", "1536 1536 1536 1536 1536 1536 1536 1536 1536", 
+                            "--use_seed", "True", 
+                            "--seed_values", "12 13 14 15"]*/
+            /*"args": ["--use_cuda", "False", 
+                    "-c", "0", 
+                    "-p", "5m_pineapple_10_vl",
+                    "-w", "logs/5m_pineapple_10_vl_vl/efficientdet-d0_best.pth",
+                    "--nms_thres", "0.4",
+                    "--conf_thres", "0.4",
+                    "--metric", "simple",
+                    "--use_only_vl", "True",
+                    "--input_sizes", "1536 1536 1536 1536 1536 1536 1536 1536 1536"]*/
+            /*"args": ["--use_cuda", "False", 
+                        "-c", "0", 
+                        "-p", "5m_pineapple_10_ml",
+                        "-w", "logs/pre-trained/5m_pineapple_10_ml_11_RedEdge/efficientdet-d0_best.pth",
+                        "--nms_thres", "0.4",
+                        "--conf_thres", "0.4",
+                        "--metric", "simple",
+                        "--use_only_vl", "False",
+                        "--bands_to_apply", "RedEdge",
+                        "--input_sizes", "1536 1536 1536 1536 1536 1536 1536 1536 1536"]*/
+            
+            /*"args": ["--input_path", "/mnt/e/datosmanfred/gira_10_13_mar21_5m_SIFT_DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING",
+                            "--output_path", "/mnt/e/datosmanfred/gira_10_13_mar21_5m_SIFT_DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING_resized"]*/
+            /*"args": ["--input_path", "/mnt/e/datosmanfred/mosaicos/L301_B21_y_3_20m/L301_B21_y_3_20m_cropped",
+                                "--output_path", "/mnt/e/datosmanfred/mosaicos/L301_B21_y_3_20m/L301_B21_y_3_20m_cropped_visualized"]*/
+            /*############################### Yolov5 #######################################*/
+            /*"args": ["--input_path", "/mnt/e/datosmanfred/workspace/gira_10_13_mar21_5m_sift_3_NORM_L1_resized_OFFICIAL/",
+                        "--seed", "11",
+                        "--project_name", "5m_pineapple_10_ml_yv5_RedEdge_gt",
+                        "--img_extension", "JPG",
+                        "--output_path", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets",
+                        "--multispectral", "Red Green Blue RedEdge NIR"]*/
+                        
+            "args": ["--img", "1024",
+                     "--batch", "16",
+                     "--epochs", "100",
+                     "--data", "datasets/5m_pineapple_10_ml_yv5_RGB_gt/data.yaml",
+                     "--weights", "yolov5s.pt",//]
+                     "--bands_to_apply", "MCARI",
+                     "--seed_values", "11"]
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_11_seed/weights/best.pt",
+
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_11_seed/weights/best.pt",
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_12_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_12_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_12_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_12_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_12_seed/weights/best.pt",
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_13_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_13_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_13_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_13_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_13_seed/weights/best.pt",
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_14_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_14_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_14_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_14_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_14_seed/weights/best.pt",
+            /*"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_15_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_15_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_15_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_15_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_15_seed/weights/best.pt",
+            
+            //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/RGB_15_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_15_seed/weights/best.pt",         
+                        "--img", "1024",
+                        "--conf-thres", "0.4",
+                        "--iou-thres", "0.4",
+                        "--dataset_path", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets/5m_pineapple_10_ml_yv5_RedEdge_gt/test",//]
+                        //"--bands_to_apply", "Red Green Blue NIR"]
+                        "--bands_to_apply", "Red Green Blue RedEdge NIR"]*/
+            /*"args": ["--weights", "yolov5/runs/train/RGB_11_seed/weights/best.pt",          
+                            "--img", "1024",
+                            "--conf-thres", "0.4",
+                            "--iou-thres", "0.4",
+                            "--dataset_path", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets/5m_pineapple_10_ml_yv5/test",]*/
+            /*"args": ["--weights", "yolov5/runs/train/RGB_11_seed/weights/best.pt",          
+                                "--img", "1024",
+                                "--conf-thres", "0.4",
+                                "--iou-thres", "0.4",
+                                "--dataset_path", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets/5m_pineapple_10_ml_yv5/test",]   */         
+                    }
     ]
 }
