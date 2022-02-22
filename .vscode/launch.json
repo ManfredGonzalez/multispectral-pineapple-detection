@@ -73,7 +73,7 @@
                      "--epochs", "100",
                      "--data", "datasets/5m_pineapple_10_ml_yv5_RGB_gt/data.yaml",
                      "--weights", "yolov5s.pt",//]
-                     "--bands_to_apply", "MCARI",
+                     "--bands_to_apply", "MSAVI12",
                      "--seed_values", "11"]
             //"args": ["--weights", "yolov5/runs/train/cluster/RedEdge_gt/Red_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Green_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/Blue_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/RedEdge_11_seed/weights/best.pt yolov5/runs/train/cluster/RedEdge_gt/NIR_11_seed/weights/best.pt",
 
