@@ -67,9 +67,10 @@
                         "--img_extension", "JPG",
                         "--output_path", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets",
                         "--multispectral", "Red Green Blue RedEdge NIR"]*/
-            "args": ["--source", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets/5m_pineapple_10_ml_yv5_RGB_gt/test/images/00000023.JPG", 
-                    "--weights", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/yolov5/runs/train/cluster/RGB_gt/RGB_13_seed/weights/best.pt",
-                    "--img", "1024"]      
+            "args": ["--source", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/datasets/5m_pineapple_10_ml_yv5_RGB_gt/test/images", 
+                    "--weights", "/mnt/e/datosmanfred/workspace/multispectral-pineapple-detection/yolov5/runs/train/cluster/RGB_gt/NIR_14_seed/weights/best.pt",
+                    "--img", "1024",
+                    "--bands_to_apply", "NIR"]      
             /*"args": ["--img", "1024",
                      "--batch", "16",
                      "--epochs", "100",
