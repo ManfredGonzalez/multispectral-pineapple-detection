@@ -62,11 +62,26 @@ This sections shows the format of the dataset to be used in this framework.
     datasets/
         -your_project_name/
             -train_set_name/
-                -*.jpg
+                -*.JPG
+                -*_Blue.TIF
+                -*_Green.TIF
+                -*_NIR.TIF
+                -*_Red.TIF
+                -*_RedEdge.TIF
             -val_set_name/
-                -*.jpg
+                -*.JPG
+                -*_Blue.TIF
+                -*_Green.TIF
+                -*_NIR.TIF
+                -*_Red.TIF
+                -*_RedEdge.TIF
             -test_set_name/
-                -*.jpg
+                -*.JPG
+                -*_Blue.TIF
+                -*_Green.TIF
+                -*_NIR.TIF
+                -*_Red.TIF
+                -*_RedEdge.TIF
             -annotations
                 -instances_{train_set_name}.json
                 -instances_{val_set_name}.json
@@ -97,40 +112,27 @@ This sections shows the format of the dataset to be used in this framework.
     # for example, index of 'car' here is 2, while category_id of is 3
     obj_list: ['person', 'bicycle', 'car', ...]
     
-### 3.a. Train on coco from scratch(not necessary)
-
-    # train efficientdet-d0 on coco from scratch 
-    # with batchsize 12
-    # This takes time and requires change 
-    # of hyperparameters every few hours.
-    # If you have months to kill, do it. 
-    # It's not like someone going to achieve
-    # better score than the one in the paper.
-    # The first few epoches will be rather unstable,
-    # it's quite normal when you train from scratch.
-    
-    python train.py -c 0 --batch_size 64 --optim sgd --lr 8e-2
-
-### 3.b. Train a custom dataset from scratch
+### 3.a. Train a custom dataset from scratch
 
     # train efficientdet-d1 on a custom dataset 
     # with batchsize 8 and learning rate 1e-5
     
-    python train.py -c 1 -p your_project_name --batch_size 8 --lr 1e-5
+    python train.py -c 1 -p your_project_name --batch_size 8 --lr 1e-5 --bands_to_apply 'Red Green Blue RedEdge NIR'
 
-### 3.c. Train a custom dataset with pretrained weights (Highly Recommended)
+### 3.b. Train a custom dataset with pretrained weights (Highly Recommended)
 
     # train efficientdet-d2 on a custom dataset with pretrained weights
     # with batchsize 8 and learning rate 1e-3 for 10 epoches
     
     python train.py -c 2 -p your_project_name --batch_size 8 --lr 1e-3 --num_epochs 10 \
-     --load_weights /path/to/your/weights/efficientdet-d2.pth
+     --load_weights /path/to/your/weights/efficientdet-d2.pth --bands_to_apply 'Red Green Blue RedEdge NIR'
     
     # with a coco-pretrained, you can even freeze the backbone and train heads only
     # to speed up training and help convergence.
     
     python train.py -c 2 -p your_project_name --batch_size 8 --lr 1e-3 --num_epochs 10 \
      --load_weights /path/to/your/weights/efficientdet-d2.pth \
+     --bands_to_apply 'Red Green Blue RedEdge NIR' \
      --head_only True
 
 ### 4. Early stopping a training session
@@ -144,6 +146,7 @@ This sections shows the format of the dataset to be used in this framework.
     
     python train.py -c 2 -p your_project_name --batch_size 8 --lr 1e-3 \
      --load_weights /path/to/your/weights/efficientdet-d2.pth \
+     --bands_to_apply 'Red Green Blue RedEdge NIR' \
      --head_only True
      
     # then you stopped it with a Ctrl+c, it exited with a checkpoint
@@ -153,6 +156,7 @@ This sections shows the format of the dataset to be used in this framework.
     
     python train.py -c 2 -p your_project_name --batch_size 8 --lr 1e-3 \
      --load_weights last \
+     --bands_to_apply 'Red Green Blue RedEdge NIR' \
      --head_only True
 
 ### 6. Evaluate model performance
@@ -160,4 +164,5 @@ This sections shows the format of the dataset to be used in this framework.
     # eval on your_project, efficientdet-d5
     
     python coco_eval.py -p your_project_name -c 5 \
+     --bands_to_apply 'Red Green Blue RedEdge NIR' \
      -w /path/to/your/weights
